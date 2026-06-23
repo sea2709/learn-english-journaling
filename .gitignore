@@ -1,0 +1,23 @@
+*.iml
+.gradle
+/local.properties
+/.idea
+.DS_Store
+/build
+/captures
+.externalNativeBuild
+.cxx
+*.apk
+*.ap_
+*.aab
+
+# Keystore files
+*.jks
+*.keystore
+
+# Android Studio
+.navigation/
+*.hprof
+
+# Kotlin
+.kotlin/

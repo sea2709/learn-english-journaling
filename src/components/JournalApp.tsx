@@ -12,6 +12,7 @@ import {
   analyzeEntryReview,
   analyzeText,
   ApiError,
+  deleteEntry,
   fetchEntry,
   listEntries,
   saveEntry as saveEntryApi,
@@ -215,6 +216,23 @@ export function JournalApp({ user }: { user: User }) {
     setEntriesOpen(false);
   };
 
+  const handleDeleteEntry = async (entry: JournalEntryListItem) => {
+    try {
+      await deleteEntry(entry.id);
+
+      if (selectedId === entry.id) {
+        handleNewEntry();
+      }
+
+      await refreshEntries();
+      setMessage({ type: "success", text: "Entry deleted" });
+    } catch (error) {
+      const text =
+        error instanceof ApiError ? error.message : "Failed to delete entry.";
+      setMessage({ type: "error", text });
+    }
+  };
+
   const handleSelectEntry = async (entry: JournalEntryListItem) => {
     try {
       const stored = await fetchEntry(entry.id);
@@ -365,6 +383,7 @@ export function JournalApp({ user }: { user: User }) {
         onRefresh={refreshEntries}
         onClose={() => setEntriesOpen(false)}
         onNewEntry={handleNewEntry}
+        onDelete={handleDeleteEntry}
       />
 
       <FeedbackDrawer

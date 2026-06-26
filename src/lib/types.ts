@@ -20,6 +20,34 @@ export interface AnalysisResult {
   suggestions: Suggestion[];
 }
 
+/** Full-entry review from POST /api/analyze/review */
+export type EntryReviewResult = AnalysisResult;
+
+export interface JournalParagraph {
+  id: string;
+  text: string;
+  analysis: AnalysisResult | null;
+  analyzedText: string | null;
+}
+
+export interface StoredJournalEntry {
+  id: string;
+  title: string;
+  date: string;
+  paragraphs: JournalParagraph[];
+  status: string;
+}
+
+export interface JournalEntryListItem {
+  id: string;
+  title: string;
+  date: string;
+  grammarScore: number | null;
+  tone: string;
+  paragraphCount: number;
+  status: string;
+}
+
 export interface JournalEntry {
   id: string;
   title: string;

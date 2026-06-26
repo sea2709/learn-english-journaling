@@ -1,6 +1,7 @@
 "use client";
 
 import type { AnalysisResult } from "@/lib/types";
+import { CollapsibleSection } from "./CollapsibleSection";
 import { SuggestionCard } from "./SuggestionCard";
 
 interface FeedbackPanelProps {
@@ -69,50 +70,61 @@ export function FeedbackPanel({ analysis, loading }: FeedbackPanelProps) {
           Your feedback will appear here
         </h3>
         <p className="mt-2 max-w-xs text-sm leading-relaxed text-ink-500">
-          Write a paragraph and click &ldquo;Get feedback&rdquo; to receive suggestions on
-          grammar, tone, word choice, and natural expression.
+          Write a paragraph and press{" "}
+          <kbd className="rounded border border-ink-200 bg-ink-50 px-1.5 py-0.5 text-xs font-medium">
+            Ctrl+Enter
+          </kbd>{" "}
+          to receive suggestions on grammar, tone, word choice, and natural expression.
         </p>
       </div>
     );
   }
 
   return (
-    <div className="space-y-6">
-      <div className="rounded-2xl border border-ink-200/60 bg-white p-6 shadow-sm">
+    <div className="space-y-4">
+      <CollapsibleSection
+        title={
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="font-serif text-lg font-semibold text-ink-900">Overview</span>
+            <span className="rounded-full bg-ink-100 px-2.5 py-0.5 text-xs font-medium capitalize text-ink-700">
+              {analysis.tone} tone
+            </span>
+          </div>
+        }
+      >
         <div className="flex flex-wrap items-start gap-6">
           <ScoreRing score={analysis.grammarScore} />
-          <div className="min-w-0 flex-1">
-            <div className="mb-2 flex flex-wrap items-center gap-2">
-              <h3 className="font-serif text-lg font-semibold text-ink-900">Overview</h3>
-              <span className="rounded-full bg-ink-100 px-2.5 py-0.5 text-xs font-medium capitalize text-ink-700">
-                {analysis.tone} tone
-              </span>
-            </div>
-            <p className="text-sm leading-relaxed text-ink-600">{analysis.summary}</p>
-          </div>
+          <p className="min-w-0 flex-1 text-sm leading-relaxed text-ink-600">
+            {analysis.summary}
+          </p>
         </div>
-      </div>
+      </CollapsibleSection>
 
-      <div className="rounded-2xl border border-ink-200/60 bg-white p-6 shadow-sm">
-        <h3 className="mb-3 font-serif text-lg font-semibold text-ink-900">
-          Polished version
-        </h3>
+      <CollapsibleSection
+        title={
+          <span className="font-serif text-lg font-semibold text-ink-900">
+            Polished version
+          </span>
+        }
+      >
         <p className="font-serif text-base leading-relaxed text-ink-800">
           {analysis.correctedText}
         </p>
-      </div>
+      </CollapsibleSection>
 
       {analysis.suggestions.length > 0 && (
-        <div>
-          <h3 className="mb-4 font-serif text-lg font-semibold text-ink-900">
-            Suggestions ({analysis.suggestions.length})
-          </h3>
-          <div className="space-y-3">
-            {analysis.suggestions.map((suggestion, index) => (
-              <SuggestionCard key={`${suggestion.original}-${index}`} suggestion={suggestion} />
-            ))}
-          </div>
-        </div>
+        <CollapsibleSection
+          title={
+            <span className="font-serif text-lg font-semibold text-ink-900">
+              Suggestions ({analysis.suggestions.length})
+            </span>
+          }
+          contentClassName="space-y-3 p-4"
+        >
+          {analysis.suggestions.map((suggestion, index) => (
+            <SuggestionCard key={`${suggestion.original}-${index}`} suggestion={suggestion} />
+          ))}
+        </CollapsibleSection>
       )}
     </div>
   );

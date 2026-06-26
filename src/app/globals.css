@@ -4,21 +4,47 @@
 
 @layer base {
   body {
-    @apply bg-ink-50 text-ink-900;
+    @apply bg-paper text-ink-900;
   }
 }
 
 @layer utilities {
   .paper-texture {
+    background-color: #f3ede1;
     background-image: radial-gradient(
         circle at 20% 20%,
-        rgba(255, 255, 255, 0.8) 0%,
+        rgba(255, 255, 255, 0.6) 0%,
         transparent 50%
       ),
       radial-gradient(
         circle at 80% 0%,
-        rgba(255, 245, 235, 0.5) 0%,
+        rgba(255, 245, 235, 0.4) 0%,
         transparent 40%
       );
+  }
+
+  .notebook-margin {
+    background-image: linear-gradient(
+      to right,
+      transparent 39px,
+      rgba(176, 67, 46, 0.35) 39px,
+      rgba(176, 67, 46, 0.35) 41px,
+      transparent 41px
+    );
+  }
+
+  .topbar-dim {
+    opacity: 0.45;
+    transition: opacity 0.25s ease;
+  }
+
+  .topbar-dim:hover,
+  .topbar-dim:focus-within {
+    opacity: 1;
+  }
+
+  .writing-dim {
+    opacity: 0.35;
+    transition: opacity 0.2s ease;
   }
 }

@@ -1,47 +1,91 @@
 import { NextRequest, NextResponse } from "next/server";
-import { listEntries, saveEntry } from "@/lib/notion";
-import type { AnalysisResult } from "@/lib/types";
+import {
+  listEntriesForUser,
+  upsertEntryForUser,
+} from "@/lib/entries-db";
+import { createClient } from "@/lib/supabase/server";
+import type { JournalParagraph, StoredJournalEntry } from "@/lib/types";
+
+function isParagraph(value: unknown): value is JournalParagraph {
+  if (!value || typeof value !== "object") return false;
+  const paragraph = value as JournalParagraph;
+  return (
+    typeof paragraph.id === "string" &&
+    typeof paragraph.text === "string" &&
+    (paragraph.analyzedText === null ||
+      typeof paragraph.analyzedText === "string")
+  );
+}
+
+function isStoredEntry(value: unknown): value is StoredJournalEntry {
+  if (!value || typeof value !== "object") return false;
+  const entry = value as StoredJournalEntry;
+  return (
+    typeof entry.id === "string" &&
+    typeof entry.title === "string" &&
+    typeof entry.date === "string" &&
+    typeof entry.status === "string" &&
+    Array.isArray(entry.paragraphs) &&
+    entry.paragraphs.every(isParagraph)
+  );
+}
 
 export async function GET() {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
   try {
-    const entries = await listEntries();
+    const entries = await listEntriesForUser(supabase, user.id);
     return NextResponse.json({ entries });
   } catch (error) {
     console.error("List entries error:", error);
-    const message =
-      error instanceof Error ? error.message : "Failed to load entries";
-    return NextResponse.json({ error: message }, { status: 500 });
+    return NextResponse.json(
+      { error: "Failed to load entries." },
+      { status: 500 }
+    );
   }
 }
 
 export async function POST(request: NextRequest) {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
   try {
     const body = await request.json();
-    const title = typeof body.title === "string" ? body.title.trim() : "";
-    const originalText =
-      typeof body.originalText === "string" ? body.originalText.trim() : "";
-    const analysis = body.analysis as AnalysisResult | undefined;
 
-    if (!originalText) {
+    if (!isStoredEntry(body)) {
       return NextResponse.json(
-        { error: "Original text is required." },
+        { error: "Invalid entry payload." },
         { status: 400 }
       );
     }
 
-    if (!analysis?.correctedText) {
+    if (!body.paragraphs.some((paragraph) => paragraph.text.trim())) {
       return NextResponse.json(
-        { error: "Analysis is required before saving." },
+        { error: "Entry must include at least one paragraph with text." },
         { status: 400 }
       );
     }
 
-    const entry = await saveEntry(title, originalText, analysis);
+    const entry = await upsertEntryForUser(supabase, user.id, body);
     return NextResponse.json({ entry });
   } catch (error) {
     console.error("Save entry error:", error);
-    const message =
-      error instanceof Error ? error.message : "Failed to save entry";
-    return NextResponse.json({ error: message }, { status: 500 });
+    return NextResponse.json(
+      { error: "Failed to save entry." },
+      { status: 500 }
+    );
   }
 }

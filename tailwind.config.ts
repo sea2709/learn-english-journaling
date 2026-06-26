@@ -9,6 +9,16 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
+        paper: {
+          DEFAULT: "#F3EDE1",
+          dark: "#E8E0D0",
+          line: "#D4C9B8",
+        },
+        pen: {
+          DEFAULT: "#B0432E",
+          light: "#C5562E",
+          muted: "#B0432E99",
+        },
         ink: {
           50: "#f7f6f3",
           100: "#ece9e1",
@@ -50,8 +60,31 @@ const config: Config = {
         },
       },
       fontFamily: {
-        serif: ["var(--font-literata)", "Georgia", "serif"],
-        sans: ["var(--font-dm-sans)", "system-ui", "sans-serif"],
+        display: ["var(--font-fraunces)", "Georgia", "serif"],
+        mono: ["var(--font-courier-prime)", "Courier New", "monospace"],
+        sans: ["system-ui", "-apple-system", "Segoe UI", "sans-serif"],
+      },
+      maxWidth: {
+        sheet: "640px",
+      },
+      keyframes: {
+        "drawer-in-left": {
+          from: { transform: "translateX(-100%)" },
+          to: { transform: "translateX(0)" },
+        },
+        "drawer-in-right": {
+          from: { transform: "translateX(100%)" },
+          to: { transform: "translateX(0)" },
+        },
+        "fade-in": {
+          from: { opacity: "0" },
+          to: { opacity: "1" },
+        },
+      },
+      animation: {
+        "drawer-in-left": "drawer-in-left 0.25s ease-out",
+        "drawer-in-right": "drawer-in-right 0.25s ease-out",
+        "fade-in": "fade-in 0.2s ease-out",
       },
     },
   },

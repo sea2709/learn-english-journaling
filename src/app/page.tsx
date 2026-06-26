@@ -1,5 +1,5 @@
-import { JournalMockup } from "@/components/JournalMockup";
+import { AuthGate } from "@/components/AuthGate";
 
 export default function Home() {
-  return <JournalMockup />;
+  return <AuthGate />;
 }

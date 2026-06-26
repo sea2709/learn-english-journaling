@@ -1,5 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
-import { analyzeText, getMockAnalysis, isAiConfigured } from "@/lib/ai";
+import {
+  getMockEntryReview,
+  isAiConfigured,
+  reviewEntry,
+} from "@/lib/ai";
 
 export async function POST(request: NextRequest) {
   try {
@@ -8,28 +12,26 @@ export async function POST(request: NextRequest) {
 
     if (!text) {
       return NextResponse.json(
-        { error: "Please write a paragraph to analyze." },
+        { error: "Please write something before requesting a review." },
         { status: 400 }
       );
     }
 
-    if (text.length > 5000) {
+    if (text.length > 20000) {
       return NextResponse.json(
-        { error: "Paragraph is too long. Please keep it under 5,000 characters." },
+        { error: "Entry is too long. Please keep it under 20,000 characters." },
         { status: 400 }
       );
     }
 
     const useMock = !isAiConfigured();
-    const analysis = useMock
-      ? getMockAnalysis(text)
-      : await analyzeText(text);
+    const review = useMock ? getMockEntryReview(text) : await reviewEntry(text);
 
-    return NextResponse.json({ analysis, mock: useMock });
+    return NextResponse.json({ review, mock: useMock });
   } catch (error) {
-    console.error("Analysis error:", error);
+    console.error("Entry review error:", error);
     const message =
-      error instanceof Error ? error.message : "Failed to analyze text";
+      error instanceof Error ? error.message : "Failed to review entry";
     return NextResponse.json({ error: message }, { status: 500 });
   }
 }

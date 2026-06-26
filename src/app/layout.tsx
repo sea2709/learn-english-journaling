@@ -1,15 +1,16 @@
 import type { Metadata } from "next";
-import { DM_Sans, Literata } from "next/font/google";
+import { Courier_Prime, Fraunces } from "next/font/google";
 import "./globals.css";
 
-const dmSans = DM_Sans({
+const fraunces = Fraunces({
   subsets: ["latin"],
-  variable: "--font-dm-sans",
+  variable: "--font-fraunces",
 });
 
-const literata = Literata({
+const courierPrime = Courier_Prime({
   subsets: ["latin"],
-  variable: "--font-literata",
+  weight: ["400", "700"],
+  variable: "--font-courier-prime",
 });
 
 export const metadata: Metadata = {
@@ -26,7 +27,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body
-        className={`${dmSans.variable} ${literata.variable} font-sans antialiased`}
+        className={`${fraunces.variable} ${courierPrime.variable} font-sans antialiased`}
       >
         {children}
       </body>

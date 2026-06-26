@@ -1,9 +1,12 @@
-import OpenAI from "openai";
+import { generateObject } from "ai";
+import { google } from "@ai-sdk/google";
+import { openai } from "@ai-sdk/openai";
+import { z } from "zod";
 import type { AnalysisResult } from "./types";
 
 const SYSTEM_PROMPT = `You are an expert English language coach helping non-native speakers improve their journal writing.
 
-Analyze the user's paragraph and return structured JSON feedback focused on:
+Analyze the user's paragraph and return structured feedback focused on:
 1. Grammar errors and fixes
 2. Tone (formal, casual, neutral, or mixed)
 3. Word choice — suggest more natural or precise alternatives
@@ -12,64 +15,69 @@ Analyze the user's paragraph and return structured JSON feedback focused on:
 
 Be encouraging but precise. Prioritize changes that make the writing sound more natural to native English speakers.
 
-Return ONLY valid JSON matching this schema:
-{
-  "correctedText": "full paragraph with all improvements applied",
-  "tone": "formal" | "casual" | "neutral" | "mixed",
-  "grammarScore": number from 0-100,
-  "summary": "2-3 sentence overall assessment",
-  "suggestions": [
-    {
-      "category": "grammar" | "tone" | "word-choice" | "naturalness" | "punctuation",
-      "original": "the exact phrase from the text",
-      "suggestion": "the improved version",
-      "explanation": "brief, clear explanation"
-    }
-  ]
-}
-
 Include 3-8 suggestions. If the text is already excellent, still provide at least 2 minor polish suggestions.`;
 
+const analysisSchema = z.object({
+  correctedText: z.string(),
+  tone: z.enum(["formal", "casual", "neutral", "mixed"]),
+  grammarScore: z.number().min(0).max(100),
+  summary: z.string(),
+  suggestions: z.array(
+    z.object({
+      category: z.enum([
+        "grammar",
+        "tone",
+        "word-choice",
+        "naturalness",
+        "punctuation",
+      ]),
+      original: z.string(),
+      suggestion: z.string(),
+      explanation: z.string(),
+    })
+  ),
+});
+
+function getModel() {
+  const provider = process.env.AI_PROVIDER ?? "google";
+  const model = process.env.AI_MODEL ?? "gemini-2.0-flash";
+
+  switch (provider) {
+    case "openai":
+      return openai(model);
+    case "google":
+    default:
+      return google(model);
+  }
+}
+
+export function isAiConfigured(): boolean {
+  const provider = process.env.AI_PROVIDER ?? "google";
+  switch (provider) {
+    case "openai":
+      return Boolean(process.env.OPENAI_API_KEY);
+    case "google":
+    default:
+      return Boolean(process.env.GOOGLE_GENERATIVE_AI_API_KEY);
+  }
+}
+
 export async function analyzeText(text: string): Promise<AnalysisResult> {
-  const apiKey = process.env.OPENAI_API_KEY;
-  if (!apiKey) {
+  if (!isAiConfigured()) {
     throw new Error(
-      "OPENAI_API_KEY is not configured. Add it to your .env.local file."
+      "AI provider is not configured. Add GOOGLE_GENERATIVE_AI_API_KEY to your .env.local file."
     );
   }
 
-  const openai = new OpenAI({ apiKey });
-
-  const response = await openai.chat.completions.create({
-    model: "gpt-4o-mini",
-    messages: [
-      { role: "system", content: SYSTEM_PROMPT },
-      {
-        role: "user",
-        content: `Please analyze this journal paragraph:\n\n${text}`,
-      },
-    ],
-    response_format: { type: "json_object" },
+  const { object } = await generateObject({
+    model: getModel(),
+    schema: analysisSchema,
+    system: SYSTEM_PROMPT,
+    prompt: `Please analyze this journal paragraph:\n\n${text}`,
     temperature: 0.4,
   });
 
-  const content = response.choices[0]?.message?.content;
-  if (!content) {
-    throw new Error("No response from AI");
-  }
-
-  const parsed = JSON.parse(content) as AnalysisResult;
-
-  if (
-    !parsed.correctedText ||
-    !parsed.tone ||
-    typeof parsed.grammarScore !== "number" ||
-    !Array.isArray(parsed.suggestions)
-  ) {
-    throw new Error("Invalid AI response format");
-  }
-
-  return parsed;
+  return object;
 }
 
 export function getMockAnalysis(text: string): AnalysisResult {
@@ -78,14 +86,71 @@ export function getMockAnalysis(text: string): AnalysisResult {
     tone: "neutral",
     grammarScore: 75,
     summary:
-      "This is a demo analysis. Configure OPENAI_API_KEY in .env.local to get real AI feedback on your writing.",
+      "This is a demo analysis. Configure GOOGLE_GENERATIVE_AI_API_KEY in .env.local to get real AI feedback on your writing.",
     suggestions: [
       {
         category: "naturalness",
         original: "your paragraph",
         suggestion: "your polished paragraph",
         explanation:
-          "Connect your OpenAI API key to receive personalized suggestions for your actual writing.",
+          "Connect your AI provider API key to receive personalized suggestions for your actual writing.",
+      },
+    ],
+  };
+}
+
+const REVIEW_SYSTEM_PROMPT = `You are an expert English language coach helping non-native speakers improve their journal writing.
+
+Review the user's full journal entry (multiple paragraphs) and return structured feedback focused on:
+1. Overall grammar and clarity across the entire entry
+2. Tone consistency (formal, casual, neutral, or mixed)
+3. Word choice — suggest more natural or precise alternatives
+4. Naturalness — phrases that sound translated or awkward
+5. Flow and cohesion between paragraphs
+
+Be encouraging but precise. Prioritize changes that make the writing sound more natural to native English speakers.
+
+Include 5-12 suggestions spanning the entry. If the text is already excellent, still provide at least 3 minor polish suggestions.`;
+
+export async function reviewEntry(text: string): Promise<AnalysisResult> {
+  if (!isAiConfigured()) {
+    throw new Error(
+      "AI provider is not configured. Add GOOGLE_GENERATIVE_AI_API_KEY to your .env.local file."
+    );
+  }
+
+  const { object } = await generateObject({
+    model: getModel(),
+    schema: analysisSchema,
+    system: REVIEW_SYSTEM_PROMPT,
+    prompt: `Please review this full journal entry:\n\n${text}`,
+    temperature: 0.4,
+  });
+
+  return object;
+}
+
+export function getMockEntryReview(text: string): AnalysisResult {
+  const paragraphCount = text.split(/\n\n+/).filter((p) => p.trim()).length;
+  return {
+    correctedText: text,
+    tone: "neutral",
+    grammarScore: 72,
+    summary: `Demo full-entry review across ${paragraphCount || 1} paragraph${paragraphCount === 1 ? "" : "s"}. Configure GOOGLE_GENERATIVE_AI_API_KEY in .env.local for real feedback.`,
+    suggestions: [
+      {
+        category: "naturalness",
+        original: "your entry",
+        suggestion: "your polished entry",
+        explanation:
+          "Connect your AI provider API key to receive personalized suggestions for your full journal entry.",
+      },
+      {
+        category: "tone",
+        original: "overall tone",
+        suggestion: "consistent tone",
+        explanation:
+          "A full-entry review checks tone consistency across all paragraphs.",
       },
     ],
   };

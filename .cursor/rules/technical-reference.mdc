@@ -1,0 +1,19 @@
+---
+description: Project technical reference — read AGENTS.md before exploring the codebase
+alwaysApply: true
+---
+
+# English Journal — agent onboarding
+
+**Before reading or editing source files, read [`AGENTS.md`](../../AGENTS.md) at the repo root.**
+
+It covers architecture, data model, API routes, auth, AI layer, file map, conventions, and where to change things.
+
+## Quick facts
+
+- Next.js 15 App Router + Supabase (auth + Postgres) + Vercel AI SDK (Gemini/OpenAI)
+- Main UI: `AuthGate` → `JournalApp` (paragraph editor + feedback panel + entry sidebar)
+- Persistence: `journal_entries` + `journal_paragraphs` via `src/lib/entries-db.ts`
+- `src/lib/notion.ts` and `src/lib/mock-data.ts` are **legacy/unused** — do not wire them up
+- Use `StoredJournalEntry` / `JournalParagraph` types; avoid legacy `JournalEntry` (Notion era)
+- Analysis is per-paragraph; `/api/analyze` is public; entry APIs require auth

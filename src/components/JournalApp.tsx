@@ -63,6 +63,10 @@ export function JournalApp({ user }: { user: User }) {
     type: "success" | "error";
     text: string;
   } | null>(null);
+  const [drawerMessage, setDrawerMessage] = useState<{
+    type: "success" | "error";
+    text: string;
+  } | null>(null);
   const [entriesOpen, setEntriesOpen] = useState(false);
   const [feedbackOpen, setFeedbackOpen] = useState(false);
   const [entryReview, setEntryReview] = useState<EntryReviewResult | null>(
@@ -204,32 +208,39 @@ export function JournalApp({ user }: { user: User }) {
     }
   };
 
-  const handleNewEntry = () => {
+  const resetEditor = () => {
     const first = createParagraph();
     setTitle(formatTodayDisplay());
     setParagraphs([first]);
     setActiveParagraphId(first.id);
     setSelectedId(null);
-    setMessage(null);
     setMockMode(false);
     setEntryReview(null);
+  };
+
+  const handleNewEntry = () => {
+    resetEditor();
+    setMessage(null);
+    setDrawerMessage(null);
     setEntriesOpen(false);
   };
 
   const handleDeleteEntry = async (entry: JournalEntryListItem) => {
+    setDrawerMessage(null);
+
     try {
       await deleteEntry(entry.id);
 
       if (selectedId === entry.id) {
-        handleNewEntry();
+        resetEditor();
       }
 
       await refreshEntries();
-      setMessage({ type: "success", text: "Entry deleted" });
+      setDrawerMessage({ type: "success", text: "Entry deleted" });
     } catch (error) {
       const text =
         error instanceof ApiError ? error.message : "Failed to delete entry.";
-      setMessage({ type: "error", text });
+      setDrawerMessage({ type: "error", text });
     }
   };
 
@@ -260,7 +271,10 @@ export function JournalApp({ user }: { user: User }) {
           <div className="flex items-center gap-3">
             <button
               type="button"
-              onClick={() => setEntriesOpen(true)}
+              onClick={() => {
+                setDrawerMessage(null);
+                setEntriesOpen(true);
+              }}
               className="flex items-center gap-1.5 rounded px-2 py-1.5 font-sans text-sm text-ink-600 transition hover:bg-paper-dark hover:text-ink-800"
             >
               <svg
@@ -379,9 +393,13 @@ export function JournalApp({ user }: { user: User }) {
         entries={entries}
         loading={entriesLoading}
         selectedId={selectedId}
+        message={drawerMessage}
         onSelect={handleSelectEntry}
         onRefresh={refreshEntries}
-        onClose={() => setEntriesOpen(false)}
+        onClose={() => {
+          setEntriesOpen(false);
+          setDrawerMessage(null);
+        }}
         onNewEntry={handleNewEntry}
         onDelete={handleDeleteEntry}
       />

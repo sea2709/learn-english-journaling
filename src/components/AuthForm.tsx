@@ -98,7 +98,7 @@ export function AuthForm() {
     <div className="flex min-h-screen items-center justify-center paper-texture px-4 py-12">
       <div className="w-full max-w-sm">
         <div className="mb-8 text-center">
-          <h1 className="font-serif text-3xl font-semibold text-ink-900">
+          <h1 className="font-display text-3xl font-semibold text-ink-900">
             {heading}
           </h1>
           <p className="mt-2 text-sm text-ink-500">{subheading}</p>

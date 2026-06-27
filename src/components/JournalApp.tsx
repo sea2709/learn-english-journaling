@@ -286,11 +286,13 @@ export function JournalApp({ user }: { user: User }) {
             }}
             className="feedback-btn alt"
           >
-            ▤ Entries <span className="n">{entries.length}</span>
+            <span className="pen" aria-hidden>
+              ▤
+            </span>{" "}
+            Entries <span className="n">{entries.length}</span>
           </button>
         </div>
         <div className="top-actions">
-          {user.email && <span className="who">{user.email}</span>}
           <button type="button" onClick={handleNewEntry} className="lnk">
             New entry
           </button>
@@ -301,7 +303,7 @@ export function JournalApp({ user }: { user: User }) {
               await supabase.auth.signOut();
             }}
             className="lnk"
-            title={user.email ?? "Sign out"}
+            title="Sign out"
           >
             Sign out
           </button>

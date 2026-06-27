@@ -66,7 +66,7 @@ export function FeedbackPanel({ analysis, loading }: FeedbackPanelProps) {
     return (
       <div className="flex h-full min-h-[400px] flex-col items-center justify-center rounded-2xl border border-dashed border-ink-300 bg-white/50 p-8 text-center">
         <div className="mb-4 text-4xl opacity-40">✍️</div>
-        <h3 className="font-serif text-lg font-medium text-ink-800">
+        <h3 className="font-display text-lg font-medium text-ink-800">
           Your feedback will appear here
         </h3>
         <p className="mt-2 max-w-xs text-sm leading-relaxed text-ink-500">
@@ -85,7 +85,7 @@ export function FeedbackPanel({ analysis, loading }: FeedbackPanelProps) {
       <CollapsibleSection
         title={
           <div className="flex flex-wrap items-center gap-2">
-            <span className="font-serif text-lg font-semibold text-ink-900">Overview</span>
+            <span className="font-display text-lg font-semibold text-ink-900">Overview</span>
             <span className="rounded-full bg-ink-100 px-2.5 py-0.5 text-xs font-medium capitalize text-ink-700">
               {analysis.tone} tone
             </span>
@@ -102,12 +102,12 @@ export function FeedbackPanel({ analysis, loading }: FeedbackPanelProps) {
 
       <CollapsibleSection
         title={
-          <span className="font-serif text-lg font-semibold text-ink-900">
+          <span className="font-display text-lg font-semibold text-ink-900">
             Polished version
           </span>
         }
       >
-        <p className="font-serif text-base leading-relaxed text-ink-800">
+        <p className="font-display text-base leading-relaxed text-ink-800">
           {analysis.correctedText}
         </p>
       </CollapsibleSection>
@@ -115,7 +115,7 @@ export function FeedbackPanel({ analysis, loading }: FeedbackPanelProps) {
       {analysis.suggestions.length > 0 && (
         <CollapsibleSection
           title={
-            <span className="font-serif text-lg font-semibold text-ink-900">
+            <span className="font-display text-lg font-semibold text-ink-900">
               Suggestions ({analysis.suggestions.length})
             </span>
           }

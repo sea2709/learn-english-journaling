@@ -65,7 +65,7 @@ const config: Config = {
         sans: ["system-ui", "-apple-system", "Segoe UI", "sans-serif"],
       },
       maxWidth: {
-        sheet: "640px",
+        sheet: "720px",
       },
       keyframes: {
         "drawer-in-left": {

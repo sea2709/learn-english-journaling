@@ -41,9 +41,7 @@
     align-items: center;
     justify-content: space-between;
     gap: 1rem;
-    max-width: 640px;
-    margin-left: auto;
-    margin-right: auto;
+    width: 100%;
     padding: 18px 1rem;
     background: linear-gradient(
       to bottom,
@@ -51,8 +49,6 @@
       #f3ede1 65%,
       rgba(243, 237, 225, 0) 100%
     );
-    opacity: 0.45;
-    transition: opacity 0.25s ease;
   }
 
   @media (min-width: 640px) {
@@ -60,12 +56,6 @@
       padding-left: 1.5rem;
       padding-right: 1.5rem;
     }
-  }
-
-  .topbar:hover,
-  .topbar:focus-within,
-  body.drawer-open .topbar {
-    opacity: 1;
   }
 
   .topbar-left {
@@ -98,72 +88,47 @@
   }
 
   .brand h1 {
-    font-family: var(--font-fraunces), Georgia, serif;
-    font-size: 1rem;
-    font-weight: 600;
+    @apply font-display text-base font-semibold whitespace-nowrap;
     color: #54493c;
-    white-space: nowrap;
-  }
-
-  .who {
-    max-width: 10rem;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-    font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
-    font-size: 0.75rem;
-    color: #a6977c;
-  }
-
-  @media (max-width: 560px) {
-    .who {
-      display: none;
-    }
   }
 
   .lnk {
+    @apply font-sans text-sm;
     border: none;
     background: none;
     padding: 0.375rem 0.5rem;
-    font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
-    font-size: 0.875rem;
-    color: #8f7d62;
+    color: #54493c;
     cursor: pointer;
-    transition: color 0.15s ease;
     white-space: nowrap;
   }
 
-  .lnk:hover {
-    color: #54493c;
-  }
-
   .feedback-btn {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.375rem;
+    @apply inline-flex items-center gap-1.5 font-sans text-sm;
     padding: 0.375rem 0.75rem;
     border: 1px solid rgba(212, 201, 184, 0.8);
     border-radius: 9999px;
     background-color: rgba(255, 255, 255, 0.35);
-    font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
-    font-size: 0.875rem;
-    color: #7a6a54;
+    color: #54493c;
     cursor: pointer;
-    transition:
-      background-color 0.15s ease,
-      color 0.15s ease;
+    transition: background-color 0.15s ease;
     white-space: nowrap;
   }
 
   .feedback-btn:hover {
     background-color: #e8e0d0;
-    color: #54493c;
   }
 
   .feedback-btn .pen {
+    display: inline-flex;
+    align-items: center;
+    flex-shrink: 0;
     color: #b0432e;
     font-size: 0.8125rem;
     line-height: 1;
+  }
+
+  .feedback-btn.alt .pen {
+    transform: translateY(-1px);
   }
 
   .feedback-btn .n {
@@ -181,6 +146,7 @@
   }
 
   .feedback-btn.alt .n {
+    display: inline;
     min-width: auto;
     height: auto;
     padding: 0;
@@ -188,7 +154,8 @@
     background-color: transparent;
     font-size: 0.75rem;
     font-weight: 400;
-    color: #a6977c;
+    color: #645646;
+    vertical-align: baseline;
   }
 
   .writing-dim {

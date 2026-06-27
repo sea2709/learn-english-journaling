@@ -182,6 +182,17 @@ Three-column grid on large screens (`JournalApp`):
 
 ## Conventions for agents
 
+### Git branches
+
+When starting work on a tracked ticket or issue, branch from `main` before making changes. Full details: [`.cursor/rules/branch-naming.mdc`](.cursor/rules/branch-naming.mdc).
+
+| Issue type | Branch pattern | Example |
+|------------|----------------|---------|
+| Feature, enhancement, chore | `feature/<id>-<short-slug>` | `feature/7-journal-topbar-header` |
+| Bug fix | `bug/<id>-<short-slug>` | `bug/12-save-entry-missing` |
+
+Use lowercase kebab-case for the slug (2–5 words from the ticket title). One ticket per branch.
+
 ### Do
 
 - Keep **paragraph-level** analysis — do not merge all paragraphs into one AI call unless explicitly requested.

@@ -1,0 +1,39 @@
+---
+description: Git branch naming when starting work on a ticket or issue
+alwaysApply: true
+---
+
+# Branch naming
+
+When starting work on a ticket or issue, create a branch from the default base branch (`main`) using this pattern:
+
+```
+<prefix>/<id>-<short-slug>
+```
+
+| Issue type | Prefix | Example |
+|------------|--------|---------|
+| Feature, enhancement, chore | `feature` | `feature/42-full-width-topbar` |
+| Bug fix | `bug` | `bug/17-save-entry-missing` |
+
+## Rules
+
+- **`<id>`** — Ticket or issue identifier (e.g. GitHub issue `#7` → `7`, Jira `PROJ-123` → `PROJ-123`).
+- **`<short-slug>`** — Lowercase kebab-case summary of the ticket (2–5 words). Use letters, numbers, and hyphens only.
+- Create the branch **before** making changes; do not commit on `main` for ticket work.
+- One ticket per branch; keep the slug aligned with the issue title.
+
+## Examples
+
+```
+feature/7-journal-topbar-header
+feature/PROJ-42-entry-drawer-delete
+bug/12-paragraph-save-regression
+bug/99-auth-callback-redirect
+```
+
+## Avoid
+
+- `cursor/...`, `fix/...`, or date-based names unless the team explicitly uses them
+- Spaces, underscores, or uppercase in the slug
+- Branches with no issue id when work is tied to a tracked ticket

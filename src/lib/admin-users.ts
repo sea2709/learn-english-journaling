@@ -15,7 +15,11 @@ function getTodayStart(now: Date): Date {
   return today;
 }
 
-function countSince(users: User[], getDate: (user: User) => string | undefined | null, since: Date): number {
+function countSince(
+  users: User[],
+  getDate: (user: User) => string | undefined | null,
+  since: Date
+): number {
   return users.reduce((total, user) => {
     const value = getDate(user);
     if (!value) return total;

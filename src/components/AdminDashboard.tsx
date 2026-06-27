@@ -39,15 +39,6 @@ function formatDateTime(value: string | null): string {
   }).format(new Date(value));
 }
 
-function sortIndicator(
-  currentSort: AdminUserSort,
-  sort: AdminUserSort,
-  ascending: boolean
-): string {
-  if (currentSort !== sort) return "";
-  return ascending ? " ascending" : " descending";
-}
-
 function StatCard({
   label,
   value,
@@ -312,8 +303,8 @@ export function AdminDashboard({ adminEmail }: { adminEmail: string }) {
               <p className="mt-1 text-sm text-ink-500">{visibleRange}</p>
             </div>
             <p className="text-xs text-ink-400">
-              Sorted by {sortLabels[sort]}
-              {sortIndicator(sort, sort, ascending)}
+              Sorted by {sortLabels[sort]}{" "}
+              {ascending ? "ascending" : "descending"}
             </p>
           </div>
 

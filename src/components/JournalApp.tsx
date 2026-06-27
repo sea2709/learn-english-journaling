@@ -6,6 +6,7 @@ import type {
   EntryReviewResult,
   JournalEntryListItem,
   JournalParagraph,
+  StoredJournalEntry,
 } from "@/lib/types";
 import {
   analyzeEntryReview,
@@ -14,8 +15,10 @@ import {
   deleteEntry,
   fetchEntry,
   listEntries,
+  saveEntry as saveEntryApi,
 } from "@/lib/api";
 import {
+  canSaveEntry,
   createParagraph,
   formatTodayDisplay,
   getTotalWordCount,
@@ -54,6 +57,7 @@ export function JournalApp({ user }: { user: User }) {
   const [entries, setEntries] = useState<JournalEntryListItem[]>([]);
   const [entriesLoading, setEntriesLoading] = useState(true);
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
   const [mockMode, setMockMode] = useState(false);
   const [message, setMessage] = useState<{
     type: "success" | "error";
@@ -172,6 +176,41 @@ export function JournalApp({ user }: { user: User }) {
     setFeedbackOpen(true);
     if (!entryReview && !reviewLoading && hasAnalyzableContent(paragraphs)) {
       handleRequestReview();
+    }
+  };
+
+  const handleSave = async () => {
+    if (!canSaveEntry(paragraphs)) {
+      setMessage({
+        type: "error",
+        text: "Write at least one paragraph before saving.",
+      });
+      return;
+    }
+
+    setSaving(true);
+    setMessage(null);
+
+    const today = new Date().toISOString().split("T")[0];
+    const entry: StoredJournalEntry = {
+      id: selectedId ?? crypto.randomUUID(),
+      title: title.trim() || formatTodayDisplay(),
+      date: today,
+      paragraphs,
+      status: "saved",
+    };
+
+    try {
+      const saved = await saveEntryApi(entry);
+      setSelectedId(saved.id);
+      await refreshEntries();
+      setMessage({ type: "success", text: "Saved" });
+    } catch (error) {
+      const text =
+        error instanceof ApiError ? error.message : "Failed to save entry.";
+      setMessage({ type: "error", text });
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -330,6 +369,17 @@ export function JournalApp({ user }: { user: User }) {
           onActiveParagraphChange={setActiveParagraphId}
           onAnalyzeParagraph={handleAnalyzeParagraph}
         />
+
+        <div className="mt-8 flex justify-end border-t border-paper-line/60 pt-6">
+          <button
+            type="button"
+            onClick={handleSave}
+            disabled={saving || !canSaveEntry(paragraphs)}
+            className="rounded border border-pen/30 bg-white/60 px-5 py-2.5 font-sans text-sm font-medium text-pen transition hover:bg-white disabled:cursor-not-allowed disabled:opacity-40"
+          >
+            {saving ? "Saving…" : "Save"}
+          </button>
+        </div>
       </main>
 
       <EntryDrawer

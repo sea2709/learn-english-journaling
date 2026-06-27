@@ -1,5 +1,8 @@
 import type {
   AnalysisResult,
+  AdminStats,
+  AdminUserSort,
+  AdminUsersResponse,
   EntryReviewResult,
   JournalEntryListItem,
   StoredJournalEntry,
@@ -81,4 +84,31 @@ export async function deleteEntry(id: string): Promise<void> {
   });
 
   await parseResponse(response);
+}
+
+export async function fetchAdminStats(): Promise<AdminStats> {
+  const response = await fetch("/api/admin/stats");
+  const data = await parseResponse<{ stats: AdminStats }>(response);
+  return data.stats;
+}
+
+export async function fetchAdminUsers({
+  page,
+  perPage,
+  sort,
+  ascending,
+}: {
+  page: number;
+  perPage: number;
+  sort: AdminUserSort;
+  ascending: boolean;
+}): Promise<AdminUsersResponse> {
+  const params = new URLSearchParams({
+    page: String(page),
+    perPage: String(perPage),
+    sort,
+    ascending: String(ascending),
+  });
+  const response = await fetch(`/api/admin/users?${params.toString()}`);
+  return parseResponse(response);
 }

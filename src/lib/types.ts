@@ -48,6 +48,39 @@ export interface JournalEntryListItem {
   status: string;
 }
 
+export type AdminUserSort = "created_at" | "last_sign_in_at" | "email";
+
+export interface AdminWindowCounts {
+  today: number;
+  last3Days: number;
+  last7Days: number;
+  last30Days: number;
+}
+
+export interface AdminStats {
+  totalUsers: number;
+  newSignups: AdminWindowCounts;
+  activeLogins: AdminWindowCounts;
+}
+
+export interface AdminUserRow {
+  id: string;
+  email: string;
+  providers: string[];
+  createdAt: string;
+  lastSignInAt: string | null;
+}
+
+export interface AdminUsersResponse {
+  users: AdminUserRow[];
+  page: number;
+  perPage: number;
+  total: number;
+  totalPages: number;
+  sort: AdminUserSort;
+  ascending: boolean;
+}
+
 export interface JournalEntry {
   id: string;
   title: string;

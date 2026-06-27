@@ -101,6 +101,12 @@ export function JournalApp({ user }: { user: User }) {
     setActiveParagraphId((prev) => prev ?? paragraphs[0]?.id ?? null);
   }, [refreshEntries]);
 
+  useEffect(() => {
+    const drawerOpen = entriesOpen || feedbackOpen;
+    document.body.classList.toggle("drawer-open", drawerOpen);
+    return () => document.body.classList.remove("drawer-open");
+  }, [entriesOpen, feedbackOpen]);
+
   const handleParagraphsChange = (next: JournalParagraph[]) => {
     setParagraphs(next);
     setEntryReview(null);
@@ -266,75 +272,52 @@ export function JournalApp({ user }: { user: User }) {
 
   return (
     <div className="min-h-screen paper-texture">
-      <header className="topbar-dim sticky top-0 z-30 border-b border-paper-line/60 bg-paper/90 backdrop-blur-sm">
-        <div className="mx-auto flex max-w-sheet items-center justify-between px-4 py-3 sm:px-6">
-          <div className="flex items-center gap-3">
-            <button
-              type="button"
-              onClick={() => {
-                setDrawerMessage(null);
-                setEntriesOpen(true);
-              }}
-              className="flex items-center gap-1.5 rounded px-2 py-1.5 font-sans text-sm text-ink-600 transition hover:bg-paper-dark hover:text-ink-800"
-            >
-              <svg
-                className="h-4 w-4"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-                strokeWidth={2}
-                aria-hidden
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  d="M4 6h16M4 12h16M4 18h16"
-                />
-              </svg>
-              Entries
-              {entries.length > 0 && (
-                <span className="text-xs text-ink-400">{entries.length}</span>
-              )}
-            </button>
+      <header className="topbar">
+        <div className="topbar-left">
+          <div className="brand">
+            <span className="dot" aria-hidden />
+            <h1>English Journal</h1>
           </div>
-
-          <h1 className="font-display text-base font-semibold text-ink-800">
-            English Journal
-          </h1>
-
-          <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={handleSave}
-              disabled={saving || !canSaveEntry(paragraphs)}
-              className="rounded px-2.5 py-1.5 font-sans text-sm text-ink-500 transition hover:bg-paper-dark hover:text-ink-700 disabled:cursor-not-allowed disabled:opacity-40"
-            >
-              {saving ? "Saving…" : "Save"}
-            </button>
-            <button
-              type="button"
-              onClick={handleOpenFeedback}
-              className="relative flex items-center gap-1.5 rounded px-2.5 py-1.5 font-sans text-sm text-ink-600 transition hover:bg-paper-dark hover:text-ink-800"
-            >
-              Feedback
-              {inlineNoteCount > 0 && (
-                <span className="flex h-4 min-w-4 items-center justify-center rounded-full bg-pen px-1 text-[10px] font-medium text-white">
-                  {inlineNoteCount}
-                </span>
-              )}
-            </button>
-            <button
-              type="button"
-              onClick={async () => {
-                const supabase = createClient();
-                await supabase.auth.signOut();
-              }}
-              className="hidden rounded px-2 py-1.5 font-sans text-xs text-ink-400 transition hover:text-ink-600 sm:inline"
-              title={user.email ?? "Sign out"}
-            >
-              Sign out
-            </button>
-          </div>
+          <button
+            type="button"
+            onClick={() => {
+              setDrawerMessage(null);
+              setEntriesOpen(true);
+            }}
+            className="feedback-btn alt"
+          >
+            ▤ Entries <span className="n">{entries.length}</span>
+          </button>
+        </div>
+        <div className="top-actions">
+          {user.email && <span className="who">{user.email}</span>}
+          <button type="button" onClick={handleNewEntry} className="lnk">
+            New entry
+          </button>
+          <button
+            type="button"
+            onClick={async () => {
+              const supabase = createClient();
+              await supabase.auth.signOut();
+            }}
+            className="lnk"
+            title={user.email ?? "Sign out"}
+          >
+            Sign out
+          </button>
+          <button
+            type="button"
+            onClick={handleOpenFeedback}
+            className="feedback-btn"
+          >
+            <span className="pen" aria-hidden>
+              ✎
+            </span>{" "}
+            Feedback
+            {inlineNoteCount > 0 && (
+              <span className="n">{inlineNoteCount}</span>
+            )}
+          </button>
         </div>
       </header>
 
@@ -386,6 +369,17 @@ export function JournalApp({ user }: { user: User }) {
           onActiveParagraphChange={setActiveParagraphId}
           onAnalyzeParagraph={handleAnalyzeParagraph}
         />
+
+        <div className="mt-8 flex justify-end border-t border-paper-line/60 pt-6">
+          <button
+            type="button"
+            onClick={handleSave}
+            disabled={saving || !canSaveEntry(paragraphs)}
+            className="rounded border border-pen/30 bg-white/60 px-5 py-2.5 font-sans text-sm font-medium text-pen transition hover:bg-white disabled:cursor-not-allowed disabled:opacity-40"
+          >
+            {saving ? "Saving…" : "Save"}
+          </button>
+        </div>
       </main>
 
       <EntryDrawer

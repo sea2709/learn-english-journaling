@@ -65,3 +65,33 @@ export interface SaveEntryPayload {
   originalText: string;
   analysis: AnalysisResult;
 }
+
+export interface AdminStats {
+  totalUsers: number;
+  signupsToday: number;
+  signupsLast3Days: number;
+  signupsLast7Days: number;
+  signupsLast30Days: number;
+  activeToday: number;
+  activeLast3Days: number;
+  activeLast7Days: number;
+  activeLast30Days: number;
+}
+
+export interface AdminUserRow {
+  id: string;
+  email: string;
+  providers: string[];
+  createdAt: string;
+  lastSignInAt: string | null;
+}
+
+export interface AdminUsersResponse {
+  users: AdminUserRow[];
+  total: number;
+  page: number;
+  perPage: number;
+}
+
+export type AdminUserSort = "created_at" | "last_sign_in_at" | "email";
+export type AdminUserSortOrder = "asc" | "desc";

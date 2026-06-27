@@ -21,7 +21,6 @@ import {
   canSaveEntry,
   createParagraph,
   formatTodayDisplay,
-  getTotalWordCount,
   hasAnalyzableContent,
 } from "@/lib/entry-utils";
 import { createClient } from "@/lib/supabase/client";
@@ -78,7 +77,6 @@ export function JournalApp({ user }: { user: User }) {
     () => countInlineNotes(paragraphs),
     [paragraphs]
   );
-  const wordCount = getTotalWordCount(paragraphs);
 
   const refreshEntries = useCallback(async () => {
     setEntriesLoading(true);
@@ -294,6 +292,9 @@ export function JournalApp({ user }: { user: User }) {
         </div>
         <div className="top-actions">
           <button type="button" onClick={handleNewEntry} className="lnk">
+            <span className="pen" aria-hidden>
+              +
+            </span>{" "}
             New entry
           </button>
           <button
@@ -305,6 +306,21 @@ export function JournalApp({ user }: { user: User }) {
             className="lnk"
             title="Sign out"
           >
+            <span className="pen" aria-hidden>
+              <svg
+                className="h-3.5 w-3.5"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                strokeWidth={2}
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M15.75 9V5.25A2.25 2.25 0 0 0 13.5 3h-6a2.25 2.25 0 0 0-2.25 2.25v13.5A2.25 2.25 0 0 0 7.5 21h6a2.25 2.25 0 0 0 2.25-2.25V15m3 0 3-3m0 0-3-3m3 3H9"
+                />
+              </svg>
+            </span>{" "}
             Sign out
           </button>
           <button
@@ -354,13 +370,11 @@ export function JournalApp({ user }: { user: User }) {
             value={title}
             onChange={(e) => setTitle(e.target.value)}
             placeholder={formatTodayDisplay()}
-            className="w-full border-0 bg-transparent font-display text-2xl font-semibold text-ink-900 placeholder:text-ink-400 focus:outline-none focus:ring-0 sm:text-3xl"
+            className="w-full border-0 bg-transparent text-center font-display text-2xl font-semibold text-ink-900 placeholder:text-ink-400 focus:outline-none focus:ring-0 sm:text-3xl"
           />
-          <p className="mt-1 font-sans text-xs text-ink-400">
-            {wordCount} {wordCount === 1 ? "word" : "words"} ·{" "}
-            {paragraphs.length}{" "}
-            {paragraphs.length === 1 ? "paragraph" : "paragraphs"}
-          </p>
+          <div className="mt-3 flex justify-center" aria-hidden>
+            <span className="block h-0.5 w-10 rounded-full bg-pen sm:w-12" />
+          </div>
         </div>
 
         <ParagraphEditor
@@ -376,8 +390,8 @@ export function JournalApp({ user }: { user: User }) {
           <button
             type="button"
             onClick={handleSave}
+            className="feedback-btn"
             disabled={saving || !canSaveEntry(paragraphs)}
-            className="rounded border border-pen/30 bg-white/60 px-5 py-2.5 font-sans text-sm font-medium text-pen transition hover:bg-white disabled:cursor-not-allowed disabled:opacity-40"
           >
             {saving ? "Saving…" : "Save"}
           </button>

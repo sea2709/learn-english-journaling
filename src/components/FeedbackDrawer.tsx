@@ -95,7 +95,7 @@ export function FeedbackDrawer({
               <button
                 type="button"
                 onClick={onRequestReview}
-                className="mt-6 rounded border border-pen/30 bg-white/60 px-5 py-2.5 text-sm font-medium text-pen transition hover:bg-white"
+                className="feedback-btn mt-6"
               >
                 Review entry
               </button>
@@ -144,7 +144,7 @@ export function FeedbackDrawer({
               <button
                 type="button"
                 onClick={onRequestReview}
-                className="w-full rounded border border-paper-line bg-white/50 py-2 text-sm text-ink-600 transition hover:bg-white"
+                className="feedback-btn w-full justify-center"
               >
                 Re-run review
               </button>

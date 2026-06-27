@@ -11,6 +11,7 @@ import {
   analyzeEntryReview,
   analyzeText,
   ApiError,
+  deleteEntry,
   fetchEntry,
   listEntries,
 } from "@/lib/api";
@@ -55,6 +56,10 @@ export function JournalApp({ user }: { user: User }) {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [mockMode, setMockMode] = useState(false);
   const [message, setMessage] = useState<{
+    type: "success" | "error";
+    text: string;
+  } | null>(null);
+  const [drawerMessage, setDrawerMessage] = useState<{
     type: "success" | "error";
     text: string;
   } | null>(null);
@@ -170,16 +175,40 @@ export function JournalApp({ user }: { user: User }) {
     }
   };
 
-  const handleNewEntry = () => {
+  const resetEditor = () => {
     const first = createParagraph();
     setTitle(formatTodayDisplay());
     setParagraphs([first]);
     setActiveParagraphId(first.id);
     setSelectedId(null);
-    setMessage(null);
     setMockMode(false);
     setEntryReview(null);
+  };
+
+  const handleNewEntry = () => {
+    resetEditor();
+    setMessage(null);
+    setDrawerMessage(null);
     setEntriesOpen(false);
+  };
+
+  const handleDeleteEntry = async (entry: JournalEntryListItem) => {
+    setDrawerMessage(null);
+
+    try {
+      await deleteEntry(entry.id);
+
+      if (selectedId === entry.id) {
+        resetEditor();
+      }
+
+      await refreshEntries();
+      setDrawerMessage({ type: "success", text: "Entry deleted" });
+    } catch (error) {
+      const text =
+        error instanceof ApiError ? error.message : "Failed to delete entry.";
+      setDrawerMessage({ type: "error", text });
+    }
   };
 
   const handleSelectEntry = async (entry: JournalEntryListItem) => {
@@ -212,7 +241,10 @@ export function JournalApp({ user }: { user: User }) {
           </div>
           <button
             type="button"
-            onClick={() => setEntriesOpen(true)}
+            onClick={() => {
+              setDrawerMessage(null);
+              setEntriesOpen(true);
+            }}
             className="feedback-btn alt"
           >
             ▤ Entries <span className="n">{entries.length}</span>
@@ -305,10 +337,15 @@ export function JournalApp({ user }: { user: User }) {
         entries={entries}
         loading={entriesLoading}
         selectedId={selectedId}
+        message={drawerMessage}
         onSelect={handleSelectEntry}
         onRefresh={refreshEntries}
-        onClose={() => setEntriesOpen(false)}
+        onClose={() => {
+          setEntriesOpen(false);
+          setDrawerMessage(null);
+        }}
         onNewEntry={handleNewEntry}
+        onDelete={handleDeleteEntry}
       />
 
       <FeedbackDrawer

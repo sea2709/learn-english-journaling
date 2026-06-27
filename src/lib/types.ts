@@ -65,3 +65,34 @@ export interface SaveEntryPayload {
   originalText: string;
   analysis: AnalysisResult;
 }
+
+export interface AdminStats {
+  totalUsers: number;
+  newSignups: {
+    today: number;
+    last3Days: number;
+    last7Days: number;
+    last30Days: number;
+  };
+  activeLogins: {
+    today: number;
+    last3Days: number;
+    last7Days: number;
+    last30Days: number;
+  };
+}
+
+export interface AdminUserRow {
+  id: string;
+  email: string;
+  providers: string[];
+  createdAt: string;
+  lastSignInAt: string | null;
+}
+
+export interface AdminUsersResponse {
+  users: AdminUserRow[];
+  total: number;
+  page: number;
+  pageSize: number;
+}

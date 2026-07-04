@@ -72,12 +72,6 @@ export function ParagraphBlock({
       onClick={() => onSelect(paragraph.id)}
     >
       <div className="notebook-margin relative pl-14">
-        {stale && !isAnalyzing && (
-          <div className="absolute right-0 top-0 text-[11px] text-pen/70">
-            edited
-          </div>
-        )}
-
         <textarea
           ref={textareaRef}
           value={paragraph.text}
@@ -95,7 +89,10 @@ export function ParagraphBlock({
       </div>
 
       {canCheck && (
-        <div className="mt-1 flex justify-end pl-14">
+        <div className="mt-1 flex items-center pl-14">
+          {stale && !isAnalyzing && (
+            <span className="text-[11px] text-pen/70">edited</span>
+          )}
           <button
             type="button"
             onClick={(e) => {
@@ -103,7 +100,7 @@ export function ParagraphBlock({
               onAnalyze(paragraph.id);
             }}
             disabled={isAnalyzing}
-            className="feedback-btn min-h-11 px-4 text-xs sm:min-h-0 sm:px-3 sm:py-1.5"
+            className="feedback-btn ml-auto min-h-11 px-4 text-xs sm:min-h-0 sm:px-3 sm:py-1.5"
           >
             <span className="pen" aria-hidden>
               ✓
@@ -145,6 +142,14 @@ export function ParagraphBlock({
 
           {notesExpanded && (
             <div className="mt-2 space-y-0">
+              <div className="mb-3">
+                <p className="mb-1 text-[11px] font-medium uppercase tracking-wide text-ink-500">
+                  Polished version
+                </p>
+                <p className="font-mono text-sm leading-relaxed text-ink-800">
+                  {paragraph.analysis.correctedText}
+                </p>
+              </div>
               <p className="mb-2 font-mono text-sm leading-relaxed text-ink-600">
                 {paragraph.analysis.summary}
               </p>

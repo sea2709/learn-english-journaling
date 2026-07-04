@@ -81,8 +81,8 @@ function mapBlockToDb(entryId: string, block: EntryBlock, order: number) {
     entry_id: entryId,
     order,
     text: block.text,
-    analyzed_text: block.analyzedText,
-    analysis: block.analysis,
+    analyzed_text: null,
+    analysis: null,
     block_type: "text" as const,
     image_path: null,
   };

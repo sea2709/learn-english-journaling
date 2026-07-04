@@ -82,19 +82,20 @@ Without an API key, the app runs in demo mode with sample analysis responses.
 1. Register or sign in
 2. Write a paragraph in the editor
 3. Press **Ctrl+Enter** (or click **Check**) to get AI feedback on that paragraph only
-4. Click **Add paragraph** to continue your journal entry
-5. Click **Save entry** when you're done
-6. Past entries appear in the left sidebar
+4. Press **Enter** to add another paragraph, or **Add image** to insert a photo between blocks
+5. Click **Save** when you're done
+6. Past entries appear in the Entries drawer
 
 ## Data model
 
 ```
 auth.users (Supabase Auth)
  └── journal_entries (title, date, status)
-      └── journal_paragraphs (text, analysis JSON, order)
+      └── journal_paragraphs (block_type, text, analysis JSON, image_path, order)
+storage.buckets entry-images  # private images for entries
 ```
 
-Row Level Security policies enforce that `user_id = auth.uid()` on all journal tables.
+Row Level Security policies enforce that `user_id = auth.uid()` on all journal tables. Entry images live in the private `entry-images` bucket (`{user_id}/{entry_id}/…`).
 
 ## Layout
 

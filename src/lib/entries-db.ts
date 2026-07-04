@@ -1,9 +1,10 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { deleteEntryImagesForEntry } from "@/lib/entry-images";
 import { toListItem } from "@/lib/entry-utils";
 import type {
   AnalysisResult,
+  EntryBlock,
   JournalEntryListItem,
-  JournalParagraph,
   StoredJournalEntry,
 } from "@/lib/types";
 
@@ -16,6 +17,8 @@ type DbParagraph = {
   text: string;
   analyzed_text: string | null;
   analysis: AnalysisResult | null;
+  block_type: "text" | "image" | null;
+  image_path: string | null;
 };
 
 type DbEntry = {
@@ -27,8 +30,17 @@ type DbEntry = {
   journal_paragraphs: DbParagraph[] | null;
 };
 
-function mapParagraphFromDb(paragraph: DbParagraph): JournalParagraph {
+function mapBlockFromDb(paragraph: DbParagraph): EntryBlock {
+  if (paragraph.block_type === "image" && paragraph.image_path) {
+    return {
+      type: "image",
+      id: paragraph.id,
+      path: paragraph.image_path,
+    };
+  }
+
   return {
+    type: "text",
     id: paragraph.id,
     text: paragraph.text,
     analyzedText: paragraph.analyzed_text,
@@ -37,31 +49,42 @@ function mapParagraphFromDb(paragraph: DbParagraph): JournalParagraph {
 }
 
 function mapEntryFromDb(entry: DbEntry): StoredJournalEntry {
-  const paragraphs = (entry.journal_paragraphs ?? [])
+  const blocks = (entry.journal_paragraphs ?? [])
     .sort((a, b) => a.order - b.order)
-    .map(mapParagraphFromDb);
+    .map(mapBlockFromDb);
 
   return {
     id: entry.id,
     title: entry.title,
     date: entry.date,
     status: entry.status,
-    paragraphs,
+    blocks,
   };
 }
 
-function mapParagraphToDb(
-  entryId: string,
-  paragraph: JournalParagraph,
-  order: number
-) {
+function mapBlockToDb(entryId: string, block: EntryBlock, order: number) {
+  if (block.type === "image") {
+    return {
+      id: block.id,
+      entry_id: entryId,
+      order,
+      text: "",
+      analyzed_text: null,
+      analysis: null,
+      block_type: "image" as const,
+      image_path: block.path,
+    };
+  }
+
   return {
-    id: paragraph.id,
+    id: block.id,
     entry_id: entryId,
     order,
-    text: paragraph.text,
-    analyzed_text: paragraph.analyzedText,
-    analysis: paragraph.analysis,
+    text: block.text,
+    analyzed_text: block.analyzedText,
+    analysis: block.analysis,
+    block_type: "text" as const,
+    image_path: null,
   };
 }
 
@@ -126,9 +149,9 @@ export async function upsertEntryForUser(
 
     if (updateError) throw updateError;
 
-    const paragraphIds = entry.paragraphs.map((paragraph) => paragraph.id);
+    const blockIds = entry.blocks.map((block) => block.id);
 
-    if (paragraphIds.length === 0) {
+    if (blockIds.length === 0) {
       const { error: deleteAllError } = await supabase
         .from("journal_paragraphs")
         .delete()
@@ -140,22 +163,22 @@ export async function upsertEntryForUser(
         .from("journal_paragraphs")
         .delete()
         .eq("entry_id", entry.id)
-        .not("id", "in", `(${paragraphIds.join(",")})`);
+        .not("id", "in", `(${blockIds.join(",")})`);
 
       if (deleteError) throw deleteError;
     }
 
-    if (entry.paragraphs.length > 0) {
-      const { error: upsertParagraphsError } = await supabase
+    if (entry.blocks.length > 0) {
+      const { error: upsertBlocksError } = await supabase
         .from("journal_paragraphs")
         .upsert(
-          entry.paragraphs.map((paragraph, index) =>
-            mapParagraphToDb(entry.id, paragraph, index)
+          entry.blocks.map((block, index) =>
+            mapBlockToDb(entry.id, block, index)
           ),
           { onConflict: "id" }
         );
 
-      if (upsertParagraphsError) throw upsertParagraphsError;
+      if (upsertBlocksError) throw upsertBlocksError;
     }
   } else {
     const { count, error: countError } = await supabase
@@ -177,6 +200,8 @@ export async function upsertEntryForUser(
       if (oldestError) throw oldestError;
 
       if (oldest) {
+        await deleteEntryImagesForEntry(supabase, userId, oldest.id);
+
         const { error: deleteOldestError } = await supabase
           .from("journal_entries")
           .delete()
@@ -196,16 +221,16 @@ export async function upsertEntryForUser(
 
     if (insertError) throw insertError;
 
-    if (entry.paragraphs.length > 0) {
-      const { error: insertParagraphsError } = await supabase
+    if (entry.blocks.length > 0) {
+      const { error: insertBlocksError } = await supabase
         .from("journal_paragraphs")
         .insert(
-          entry.paragraphs.map((paragraph, index) =>
-            mapParagraphToDb(entry.id, paragraph, index)
+          entry.blocks.map((block, index) =>
+            mapBlockToDb(entry.id, block, index)
           )
         );
 
-      if (insertParagraphsError) throw insertParagraphsError;
+      if (insertBlocksError) throw insertBlocksError;
     }
   }
 
@@ -222,6 +247,8 @@ export async function deleteEntryForUser(
   userId: string,
   entryId: string
 ): Promise<boolean> {
+  await deleteEntryImagesForEntry(supabase, userId, entryId);
+
   const { data, error } = await supabase
     .from("journal_entries")
     .delete()

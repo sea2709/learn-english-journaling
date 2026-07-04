@@ -4,17 +4,25 @@ import {
   upsertEntryForUser,
 } from "@/lib/entries-db";
 import { createClient } from "@/lib/supabase/server";
-import type { JournalParagraph, StoredJournalEntry } from "@/lib/types";
+import type { EntryBlock, StoredJournalEntry } from "@/lib/types";
 
-function isParagraph(value: unknown): value is JournalParagraph {
+function isEntryBlock(value: unknown): value is EntryBlock {
   if (!value || typeof value !== "object") return false;
-  const paragraph = value as JournalParagraph;
-  return (
-    typeof paragraph.id === "string" &&
-    typeof paragraph.text === "string" &&
-    (paragraph.analyzedText === null ||
-      typeof paragraph.analyzedText === "string")
-  );
+  const block = value as EntryBlock;
+
+  if (block.type === "text") {
+    return (
+      typeof block.id === "string" &&
+      typeof block.text === "string" &&
+      (block.analyzedText === null || typeof block.analyzedText === "string")
+    );
+  }
+
+  if (block.type === "image") {
+    return typeof block.id === "string" && typeof block.path === "string";
+  }
+
+  return false;
 }
 
 function isStoredEntry(value: unknown): value is StoredJournalEntry {
@@ -25,8 +33,8 @@ function isStoredEntry(value: unknown): value is StoredJournalEntry {
     typeof entry.title === "string" &&
     typeof entry.date === "string" &&
     typeof entry.status === "string" &&
-    Array.isArray(entry.paragraphs) &&
-    entry.paragraphs.every(isParagraph)
+    Array.isArray(entry.blocks) &&
+    entry.blocks.every(isEntryBlock)
   );
 }
 
@@ -72,7 +80,10 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    if (!body.paragraphs.some((paragraph) => paragraph.text.trim())) {
+    const hasText = body.blocks.some(
+      (block) => block.type === "text" && block.text.trim()
+    );
+    if (!hasText) {
       return NextResponse.json(
         { error: "Entry must include at least one paragraph with text." },
         { status: 400 }

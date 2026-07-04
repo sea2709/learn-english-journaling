@@ -24,17 +24,26 @@ export interface AnalysisResult {
 export type EntryReviewResult = AnalysisResult;
 
 export interface JournalParagraph {
+  type: "text";
   id: string;
   text: string;
   analysis: AnalysisResult | null;
   analyzedText: string | null;
 }
 
+export interface JournalImageBlock {
+  type: "image";
+  id: string;
+  path: string;
+}
+
+export type EntryBlock = JournalParagraph | JournalImageBlock;
+
 export interface StoredJournalEntry {
   id: string;
   title: string;
   date: string;
-  paragraphs: JournalParagraph[];
+  blocks: EntryBlock[];
   status: string;
 }
 

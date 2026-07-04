@@ -38,7 +38,7 @@ src/
 │   ├── ParagraphBlock.tsx       # Single paragraph + Check button
 │   ├── ImageBlock.tsx           # Entry image preview + remove
 │   ├── FeedbackPanel.tsx        # Right panel: score, tone, suggestions
-│   ├── EntryList.tsx            # Left sidebar: past entries
+│   ├── EntryDrawer.tsx          # Past entries drawer
 │   ├── SuggestionCard.tsx       # One AI suggestion card
 │   └── CollapsibleSection.tsx   # Expandable UI sections
 ├── lib/
@@ -52,8 +52,6 @@ src/
 │   │   ├── client.ts            # Browser Supabase client
 │   │   ├── server.ts            # Server Supabase client (cookies)
 │   │   └── middleware.ts        # Session refresh in middleware
-│   ├── notion.ts                # LEGACY — not used; old Notion storage
-│   └── mock-data.ts             # LEGACY — prototype sample data; not imported
 └── middleware.ts                # Runs updateSession on all routes
 supabase/schema.sql              # DB schema + RLS policies (run in Supabase SQL Editor)
 ```
@@ -66,7 +64,7 @@ flowchart TB
     AuthGate --> JournalApp
     JournalApp --> ParagraphEditor
     JournalApp --> FeedbackPanel
-    JournalApp --> EntryList
+    JournalApp --> EntryDrawer
     JournalApp --> api_lib["lib/api.ts"]
   end
 
@@ -144,7 +142,6 @@ RLS: all policies enforce `user_id = auth.uid()` (entries) or entry ownership (p
 | `EntryBlock` | `JournalParagraph \| JournalImageBlock` |
 | `StoredJournalEntry` | Full entry for save/load: `id`, `title`, `date`, `blocks[]`, `status` |
 | `JournalEntryListItem` | Sidebar summary: avg grammar score, latest tone, paragraph count |
-| `JournalEntry` | **Legacy** flat shape from Notion era — avoid for new code |
 
 ### Paragraph staleness
 
@@ -183,7 +180,7 @@ Three-column grid on large screens (`JournalApp`):
 
 | Column | Component | Notes |
 |--------|-----------|-------|
-| Left (optional) | `EntryList` | Toggle via "Show past entries"; hidden by default |
+| Left (optional) | `EntryDrawer` | Toggle via entries drawer |
 | Center | Title input + `ParagraphEditor` + Save | Main writing area |
 | Right | `FeedbackPanel` | Active paragraph's analysis only |
 
@@ -210,8 +207,6 @@ Use lowercase kebab-case for the slug (2–5 words from the ticket title). One t
 
 ### Avoid
 
-- Wiring up `lib/notion.ts` or `lib/mock-data.ts` — legacy, unused in current app.
-- Using `JournalEntry` type for new features — it's the old flat Notion shape.
 - Adding auth to `/api/analyze` unless product requirements change (currently public for simpler demo).
 - Storing analysis only at entry level — analysis lives on each text block’s `journal_paragraphs.analysis` JSONB column.
 - Persisting signed image URLs — store `image_path` only; sign on read.
@@ -233,7 +228,7 @@ Use lowercase kebab-case for the slug (2–5 words from the ticket title). One t
 | Auth providers / forms | `AuthForm.tsx`, `SocialAuthButtons.tsx`, Supabase dashboard |
 | Editor behavior | `ParagraphEditor.tsx`, `ParagraphBlock.tsx`, `JournalApp.tsx` |
 | Feedback UI | `FeedbackPanel.tsx`, `SuggestionCard.tsx` |
-| Sidebar entries list | `EntryList.tsx`, `entry-utils.toListItem()` |
+| Sidebar entries list | `EntryDrawer.tsx`, `entry-utils.toListItem()` |
 
 ## Scripts
 

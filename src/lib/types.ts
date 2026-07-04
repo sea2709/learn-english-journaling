@@ -57,24 +57,6 @@ export interface JournalEntryListItem {
   status: string;
 }
 
-export interface JournalEntry {
-  id: string;
-  title: string;
-  date: string;
-  originalText: string;
-  correctedText: string;
-  tone: string;
-  grammarScore: number | null;
-  status: string;
-  url?: string;
-}
-
-export interface SaveEntryPayload {
-  title: string;
-  originalText: string;
-  analysis: AnalysisResult;
-}
-
 export interface AdminStats {
   totalUsers: number;
   signupsToday: number;

@@ -2,7 +2,12 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import type { User } from "@supabase/supabase-js";
+import {
+  DEFAULT_ANALYSIS_PREFERENCES,
+  formatFocusAreasSummary,
+} from "@/lib/analysis-preferences";
 import type {
+  AnalysisPreferences,
   EntryBlock,
   EntryReviewResult,
   JournalEntryListItem,
@@ -15,8 +20,10 @@ import {
   ApiError,
   deleteEntry,
   fetchEntry,
+  fetchPreferences,
   listEntries,
   saveEntry as saveEntryApi,
+  savePreferences,
 } from "@/lib/api";
 import {
   canSaveEntry,
@@ -27,6 +34,7 @@ import {
   isTextBlock,
 } from "@/lib/entry-utils";
 import { createClient } from "@/lib/supabase/client";
+import { CheckFocusSettings } from "./CheckFocusSettings";
 import { EntryDrawer } from "./EntryDrawer";
 import { FeedbackDrawer } from "./FeedbackDrawer";
 import { ParagraphEditor } from "./ParagraphEditor";
@@ -72,8 +80,19 @@ export function JournalApp({ user }: { user: User }) {
     null
   );
   const [reviewLoading, setReviewLoading] = useState(false);
+  const [analysisPreferences, setAnalysisPreferences] =
+    useState<AnalysisPreferences>(DEFAULT_ANALYSIS_PREFERENCES);
+  const [preferencesOpen, setPreferencesOpen] = useState(false);
+  const [preferencesLoading, setPreferencesLoading] = useState(true);
+  const [preferencesSaving, setPreferencesSaving] = useState(false);
+  const [preferencesError, setPreferencesError] = useState<string | null>(null);
 
   const entryId = selectedId ?? draftEntryId;
+
+  const focusSummary = useMemo(
+    () => formatFocusAreasSummary(analysisPreferences.focusAreas),
+    [analysisPreferences.focusAreas]
+  );
 
   const inlineNoteCount = useMemo(
     () => countInlineNotes(blocks),
@@ -102,10 +121,42 @@ export function JournalApp({ user }: { user: User }) {
   }, [refreshEntries]);
 
   useEffect(() => {
-    const drawerOpen = entriesOpen || feedbackOpen;
+    let cancelled = false;
+
+    const loadPreferences = async () => {
+      setPreferencesLoading(true);
+      try {
+        const preferences = await fetchPreferences();
+        if (!cancelled) {
+          setAnalysisPreferences(preferences);
+        }
+      } catch (error) {
+        if (!cancelled) {
+          const text =
+            error instanceof ApiError
+              ? error.message
+              : "Failed to load check focus settings.";
+          setMessage({ type: "error", text });
+        }
+      } finally {
+        if (!cancelled) {
+          setPreferencesLoading(false);
+        }
+      }
+    };
+
+    void loadPreferences();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    const drawerOpen = entriesOpen || feedbackOpen || preferencesOpen;
     document.body.classList.toggle("drawer-open", drawerOpen);
     return () => document.body.classList.remove("drawer-open");
-  }, [entriesOpen, feedbackOpen]);
+  }, [entriesOpen, feedbackOpen, preferencesOpen]);
 
   const handleBlocksChange = (next: EntryBlock[]) => {
     setBlocks(next);
@@ -127,7 +178,10 @@ export function JournalApp({ user }: { user: User }) {
     setMessage(null);
 
     try {
-      const { analysis, mock } = await analyzeText(paragraph.text.trim());
+      const { analysis, mock } = await analyzeText(
+        paragraph.text.trim(),
+        analysisPreferences
+      );
       setMockMode(mock);
 
       setBlocks((prev) =>
@@ -163,7 +217,10 @@ export function JournalApp({ user }: { user: User }) {
     setMessage(null);
 
     try {
-      const { review, mock } = await analyzeEntryReview(text);
+      const { review, mock } = await analyzeEntryReview(
+        text,
+        analysisPreferences
+      );
       setMockMode(mock);
       setEntryReview(review);
     } catch (error) {
@@ -179,6 +236,26 @@ export function JournalApp({ user }: { user: User }) {
     setFeedbackOpen(true);
     if (!entryReview && !reviewLoading && hasAnalyzableContent(blocks)) {
       handleRequestReview();
+    }
+  };
+
+  const handleSavePreferences = async (next: AnalysisPreferences) => {
+    setPreferencesSaving(true);
+    setPreferencesError(null);
+
+    try {
+      const saved = await savePreferences(next);
+      setAnalysisPreferences(saved);
+      setPreferencesOpen(false);
+      setMessage({ type: "success", text: "Check focus updated" });
+    } catch (error) {
+      const text =
+        error instanceof ApiError
+          ? error.message
+          : "Failed to save check focus settings.";
+      setPreferencesError(text);
+    } finally {
+      setPreferencesSaving(false);
     }
   };
 
@@ -341,6 +418,38 @@ export function JournalApp({ user }: { user: User }) {
           </button>
           <button
             type="button"
+            onClick={() => {
+              setPreferencesError(null);
+              setPreferencesOpen(true);
+            }}
+            className="lnk"
+            aria-label="Check focus settings"
+            title="Check focus settings"
+          >
+            <span className="pen" aria-hidden>
+              <svg
+                className="h-3.5 w-3.5"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                strokeWidth={2}
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M9.594 3.94c.09-.542.56-.94 1.11-.94h2.593c.55 0 1.02.398 1.11.94l.213 1.281c.063.374.313.686.645.87.074.04.147.083.22.127.325.196.72.257 1.075.124l1.217-.456a1.125 1.125 0 0 1 1.37.49l1.296 2.247a1.125 1.125 0 0 1-.26 1.431l-1.003.827c-.293.241-.438.613-.43.992a7.723 7.723 0 0 1 0 .255c-.008.378.137.75.43.991l1.003.827c.424.35.534.955.26 1.43l-1.296 2.247a1.125 1.125 0 0 1-1.37.491l-1.217-.456c-.355-.133-.75-.072-1.076.124a6.47 6.47 0 0 1-.22.128c-.331.183-.581.495-.644.869l-.213 1.281c-.09.543-.56.94-1.11.94h-2.593c-.55 0-1.019-.398-1.11-.94l-.213-1.281c-.062-.374-.312-.686-.644-.87a6.52 6.52 0 0 1-.22-.127c-.325-.196-.72-.257-1.076-.124l-1.217.456a1.125 1.125 0 0 1-1.369-.49l-1.297-2.247a1.125 1.125 0 0 1 .26-1.431l1.004-.827c.292-.24.437-.613.43-.991a6.932 6.932 0 0 1 0-.255c.007-.38-.138-.751-.43-.992l-1.004-.827a1.125 1.125 0 0 1-.26-1.43l1.297-2.247a1.125 1.125 0 0 1 1.37-.491l1.216.456c.356.133.751.072 1.076-.124.072-.044.146-.086.22-.128.332-.183.582-.495.644-.869l.214-1.28Z"
+                />
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z"
+                />
+              </svg>
+            </span>
+            <span className="btn-label">Check focus</span>
+          </button>
+          <button
+            type="button"
             onClick={handleOpenFeedback}
             className="feedback-btn"
             aria-label={
@@ -396,6 +505,11 @@ export function JournalApp({ user }: { user: User }) {
           <div className="mt-3 flex justify-center" aria-hidden>
             <span className="block h-0.5 w-10 rounded-full bg-pen sm:w-12" />
           </div>
+          {!preferencesLoading && (
+            <p className="mt-3 text-center font-sans text-xs text-ink-500">
+              Check focus: {focusSummary}
+            </p>
+          )}
         </div>
 
         <ParagraphEditor
@@ -457,8 +571,21 @@ export function JournalApp({ user }: { user: User }) {
         open={feedbackOpen}
         review={entryReview}
         loading={reviewLoading}
+        focusSummary={focusSummary}
         onClose={() => setFeedbackOpen(false)}
         onRequestReview={handleRequestReview}
+      />
+
+      <CheckFocusSettings
+        open={preferencesOpen}
+        preferences={analysisPreferences}
+        saving={preferencesSaving}
+        error={preferencesError}
+        onClose={() => {
+          setPreferencesOpen(false);
+          setPreferencesError(null);
+        }}
+        onSave={handleSavePreferences}
       />
     </div>
   );

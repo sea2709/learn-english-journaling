@@ -5,6 +5,13 @@ export type SuggestionCategory =
   | "naturalness"
   | "punctuation";
 
+export type AnalysisFocusArea = SuggestionCategory;
+
+export interface AnalysisPreferences {
+  focusAreas: AnalysisFocusArea[];
+  customNote?: string;
+}
+
 export interface Suggestion {
   category: SuggestionCategory;
   original: string;

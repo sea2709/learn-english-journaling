@@ -41,7 +41,7 @@ export function FeedbackDrawer({
         aria-hidden
       />
       <aside
-        className="fixed right-0 top-0 z-50 flex h-full w-[380px] max-w-[calc(100vw-2rem)] animate-drawer-in-right flex-col bg-paper shadow-xl max-[560px]:w-full"
+        className="fixed right-0 top-0 z-50 flex h-full w-full animate-drawer-in-right flex-col bg-paper shadow-xl sm:w-[380px] sm:max-w-[calc(100vw-2rem)]"
         role="dialog"
         aria-label="Entry feedback"
       >
@@ -52,7 +52,7 @@ export function FeedbackDrawer({
           <button
             type="button"
             onClick={onClose}
-            className="rounded p-1.5 text-ink-500 transition hover:bg-paper-dark hover:text-ink-800"
+            className="flex min-h-11 min-w-11 items-center justify-center rounded p-1.5 text-ink-500 transition hover:bg-paper-dark hover:text-ink-800 sm:min-h-0 sm:min-w-0"
             aria-label="Close feedback"
           >
             <svg

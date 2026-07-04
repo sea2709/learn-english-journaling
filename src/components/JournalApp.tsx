@@ -291,19 +291,26 @@ export function JournalApp({ user }: { user: User }) {
               setEntriesOpen(true);
             }}
             className="feedback-btn alt"
+            aria-label={`Entries, ${entries.length} saved`}
           >
             <span className="pen" aria-hidden>
               ▤
-            </span>{" "}
-            Entries <span className="n">{entries.length}</span>
+            </span>
+            <span className="btn-label">Entries</span>
+            <span className="n">{entries.length}</span>
           </button>
         </div>
         <div className="top-actions">
-          <button type="button" onClick={handleNewEntry} className="lnk">
+          <button
+            type="button"
+            onClick={handleNewEntry}
+            className="lnk"
+            aria-label="New entry"
+          >
             <span className="pen" aria-hidden>
               +
-            </span>{" "}
-            New entry
+            </span>
+            <span className="btn-label">New entry</span>
           </button>
           <button
             type="button"
@@ -312,6 +319,7 @@ export function JournalApp({ user }: { user: User }) {
               await supabase.auth.signOut();
             }}
             className="lnk"
+            aria-label="Sign out"
             title="Sign out"
           >
             <span className="pen" aria-hidden>
@@ -328,18 +336,23 @@ export function JournalApp({ user }: { user: User }) {
                   d="M15.75 9V5.25A2.25 2.25 0 0 0 13.5 3h-6a2.25 2.25 0 0 0-2.25 2.25v13.5A2.25 2.25 0 0 0 7.5 21h6a2.25 2.25 0 0 0 2.25-2.25V15m3 0 3-3m0 0-3-3m3 3H9"
                 />
               </svg>
-            </span>{" "}
-            Sign out
+            </span>
+            <span className="btn-label">Sign out</span>
           </button>
           <button
             type="button"
             onClick={handleOpenFeedback}
             className="feedback-btn"
+            aria-label={
+              inlineNoteCount > 0
+                ? `Feedback, ${inlineNoteCount} notes`
+                : "Feedback"
+            }
           >
             <span className="pen" aria-hidden>
               ✎
-            </span>{" "}
-            Feedback
+            </span>
+            <span className="btn-label">Feedback</span>
             {inlineNoteCount > 0 && (
               <span className="n">{inlineNoteCount}</span>
             )}

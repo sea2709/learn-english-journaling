@@ -60,11 +60,13 @@ export function ScoreRing({ score, size = "md" }: ScoreRingProps) {
         >
           {displayScore}
         </span>
-        {size === "md" && (
-          <p className="text-[10px] uppercase tracking-wide text-ink-500">
-            / 10
-          </p>
-        )}
+        <p
+          className={`uppercase tracking-wide text-ink-500 ${
+            size === "sm" ? "text-[9px]" : "text-[10px]"
+          }`}
+        >
+          / 10
+        </p>
       </div>
     </div>
   );

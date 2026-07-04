@@ -172,7 +172,7 @@ export function ParagraphEditor({
           type="button"
           onClick={() => fileInputRef.current?.click()}
           disabled={uploading}
-          className="font-sans text-[11px] text-pen hover:text-ink-900 disabled:opacity-50"
+          className="min-h-11 py-2 font-sans text-[11px] text-pen hover:text-ink-900 disabled:opacity-50 sm:min-h-0 sm:py-0"
         >
           {uploading ? "Uploading…" : "Add image"}
         </button>
@@ -187,7 +187,12 @@ export function ParagraphEditor({
           }}
         />
         <p className="font-sans text-[11px] text-ink-400">
-          Enter — new paragraph · Ctrl+Enter — check paragraph
+          <span className="sm:hidden">
+            Enter — new paragraph · Tap Check for feedback
+          </span>
+          <span className="hidden sm:inline">
+            Enter — new paragraph · Ctrl+Enter — check paragraph
+          </span>
         </p>
       </div>
     </div>

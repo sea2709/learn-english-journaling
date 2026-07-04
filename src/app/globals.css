@@ -27,14 +27,16 @@
       );
   }
 
-  .notebook-margin {
-    background-image: linear-gradient(
-      to right,
-      transparent 39px,
-      rgba(176, 67, 46, 0.35) 39px,
-      rgba(176, 67, 46, 0.35) 41px,
-      transparent 41px
-    );
+  .notebook-margin::before {
+    content: "";
+    position: absolute;
+    left: 37px;
+    top: calc(0.5rem + (1.125rem * 1.75) / 2);
+    width: 4px;
+    height: 1.125rem;
+    border-radius: 2px;
+    background-color: rgba(176, 67, 46, 0.24);
+    transform: translateY(-50%);
   }
 
   .topbar {

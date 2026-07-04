@@ -71,12 +71,7 @@ export function ParagraphBlock({
       }`}
       onClick={() => onSelect(paragraph.id)}
     >
-      <div className="notebook-margin relative pl-12">
-        {isAnalyzing && (
-          <div className="absolute right-0 top-0 text-[11px] text-pen">
-            checking…
-          </div>
-        )}
+      <div className="notebook-margin relative pl-14">
         {stale && !isAnalyzing && (
           <div className="absolute right-0 top-0 text-[11px] text-pen/70">
             edited
@@ -95,12 +90,12 @@ export function ParagraphBlock({
               : "Continue writing…"
           }
           rows={1}
-          className="w-full resize-none overflow-hidden border-0 bg-transparent py-2 font-mono text-base leading-[1.75] text-ink-900 placeholder:text-ink-400 focus:outline-none focus:ring-0 sm:text-[15px]"
+          className="w-full resize-none overflow-hidden border-0 bg-transparent py-2 font-mono text-lg leading-[1.75] text-ink-900 placeholder:text-ink-400 focus:outline-none focus:ring-0"
         />
       </div>
 
       {canCheck && (
-        <div className="mt-1 flex justify-end pl-12">
+        <div className="mt-1 flex justify-end pl-14">
           <button
             type="button"
             onClick={(e) => {
@@ -119,7 +114,7 @@ export function ParagraphBlock({
       )}
 
       {hasNotes && paragraph.analysis && (
-        <div className="ml-12 mt-1 border-l-2 border-pen/30 pl-3">
+        <div className="ml-14 mt-1 border-l-2 border-pen/30 pl-3">
           <button
             type="button"
             onClick={(e) => {
@@ -150,7 +145,7 @@ export function ParagraphBlock({
 
           {notesExpanded && (
             <div className="mt-2 space-y-0">
-              <p className="mb-2 font-mono text-xs leading-relaxed text-ink-600">
+              <p className="mb-2 font-mono text-sm leading-relaxed text-ink-600">
                 {paragraph.analysis.summary}
               </p>
               {paragraph.analysis.suggestions.map((suggestion, i) => (

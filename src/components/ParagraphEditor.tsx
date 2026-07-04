@@ -186,7 +186,7 @@ export function ParagraphEditor({
             if (file) void handleAddImage(file);
           }}
         />
-        <p className="font-sans text-[11px] text-ink-400">
+        <p className="font-sans text-xs text-ink-400">
           <span className="sm:hidden">
             Enter — new paragraph · Tap Check for feedback
           </span>

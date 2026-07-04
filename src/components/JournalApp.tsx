@@ -391,7 +391,7 @@ export function JournalApp({ user }: { user: User }) {
             value={title}
             onChange={(e) => setTitle(e.target.value)}
             placeholder={formatTodayDisplay()}
-            className="w-full border-0 bg-transparent text-center font-display text-2xl font-semibold text-ink-900 placeholder:text-ink-400 focus:outline-none focus:ring-0 sm:text-3xl"
+            className="w-full border-0 bg-transparent text-center font-display text-3xl font-semibold text-ink-900 placeholder:text-ink-400 focus:outline-none focus:ring-0 sm:text-[2rem]"
           />
           <div className="mt-3 flex justify-center" aria-hidden>
             <span className="block h-0.5 w-10 rounded-full bg-pen sm:w-12" />

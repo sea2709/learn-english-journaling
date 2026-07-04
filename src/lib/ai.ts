@@ -38,6 +38,64 @@ const analysisSchema = z.object({
   ),
 });
 
+/** Strip markdown fences and trailing junk after a complete JSON object. */
+function extractFirstJsonValue(text: string): string | null {
+  const trimmed = text.trim();
+  const start = trimmed.search(/[\[{]/);
+  if (start === -1) return null;
+
+  let depth = 0;
+  let inString = false;
+  let escape = false;
+
+  for (let i = start; i < trimmed.length; i++) {
+    const char = trimmed[i];
+    if (inString) {
+      if (escape) escape = false;
+      else if (char === "\\") escape = true;
+      else if (char === '"') inString = false;
+      continue;
+    }
+    if (char === '"') {
+      inString = true;
+      continue;
+    }
+    if (char === "{" || char === "[") depth++;
+    else if (char === "}" || char === "]") {
+      depth--;
+      if (depth === 0) {
+        const candidate = trimmed.slice(start, i + 1);
+        try {
+          JSON.parse(candidate);
+          return candidate;
+        } catch {
+          return null;
+        }
+      }
+    }
+  }
+  return null;
+}
+
+function repairStructuredOutputText(text: string): string | null {
+  const withoutFences = text
+    .trim()
+    .replace(/^```(?:json)?\s*\n?/i, "")
+    .replace(/\n?```[\s\S]*$/, "")
+    .trim();
+
+  for (const candidate of [withoutFences, text.trim()]) {
+    try {
+      JSON.parse(candidate);
+      return candidate;
+    } catch {
+      const extracted = extractFirstJsonValue(candidate);
+      if (extracted) return extracted;
+    }
+  }
+  return null;
+}
+
 function getModel() {
   const provider = process.env.AI_PROVIDER ?? "google";
   const model = process.env.AI_MODEL ?? "gemini-2.0-flash";
@@ -75,6 +133,8 @@ export async function analyzeText(text: string): Promise<AnalysisResult> {
     system: SYSTEM_PROMPT,
     prompt: `Please analyze this journal paragraph:\n\n${text}`,
     temperature: 0.4,
+    experimental_repairText: async ({ text: rawText }) =>
+      repairStructuredOutputText(rawText),
   });
 
   return object;
@@ -125,6 +185,8 @@ export async function reviewEntry(text: string): Promise<AnalysisResult> {
     system: REVIEW_SYSTEM_PROMPT,
     prompt: `Please review this full journal entry:\n\n${text}`,
     temperature: 0.4,
+    experimental_repairText: async ({ text: rawText }) =>
+      repairStructuredOutputText(rawText),
   });
 
   return object;

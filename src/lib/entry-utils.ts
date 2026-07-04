@@ -1,16 +1,43 @@
 import type {
+  EntryBlock,
   JournalEntryListItem,
+  JournalImageBlock,
   JournalParagraph,
   StoredJournalEntry,
 } from "./types";
 
 export function createParagraph(text = ""): JournalParagraph {
   return {
+    type: "text",
     id: crypto.randomUUID(),
     text,
     analysis: null,
     analyzedText: null,
   };
+}
+
+export function createImageBlock(path: string): JournalImageBlock {
+  return {
+    type: "image",
+    id: crypto.randomUUID(),
+    path,
+  };
+}
+
+export function isTextBlock(block: EntryBlock): block is JournalParagraph {
+  return block.type === "text";
+}
+
+export function isImageBlock(block: EntryBlock): block is JournalImageBlock {
+  return block.type === "image";
+}
+
+export function getTextBlocks(blocks: EntryBlock[]): JournalParagraph[] {
+  return blocks.filter(isTextBlock);
+}
+
+export function getImageBlocks(blocks: EntryBlock[]): JournalImageBlock[] {
+  return blocks.filter(isImageBlock);
 }
 
 export function isParagraphStale(paragraph: JournalParagraph): boolean {
@@ -19,15 +46,15 @@ export function isParagraphStale(paragraph: JournalParagraph): boolean {
 }
 
 export function getAnalyzedParagraphs(
-  paragraphs: JournalParagraph[]
+  blocks: EntryBlock[]
 ): JournalParagraph[] {
-  return paragraphs.filter((p) => p.analysis !== null);
+  return getTextBlocks(blocks).filter((p) => p.analysis !== null);
 }
 
 export function getAverageGrammarScore(
-  paragraphs: JournalParagraph[]
+  blocks: EntryBlock[]
 ): number | null {
-  const analyzed = getAnalyzedParagraphs(paragraphs);
+  const analyzed = getAnalyzedParagraphs(blocks);
   if (analyzed.length === 0) return null;
   const total = analyzed.reduce(
     (sum, p) => sum + (p.analysis?.grammarScore ?? 0),
@@ -36,39 +63,41 @@ export function getAverageGrammarScore(
   return Math.round(total / analyzed.length);
 }
 
-export function getLatestTone(paragraphs: JournalParagraph[]): string {
-  for (let i = paragraphs.length - 1; i >= 0; i--) {
-    const tone = paragraphs[i].analysis?.tone;
+export function getLatestTone(blocks: EntryBlock[]): string {
+  const textBlocks = getTextBlocks(blocks);
+  for (let i = textBlocks.length - 1; i >= 0; i--) {
+    const tone = textBlocks[i].analysis?.tone;
     if (tone) return tone;
   }
   return "";
 }
 
 export function toListItem(entry: StoredJournalEntry): JournalEntryListItem {
+  const textBlocks = getTextBlocks(entry.blocks);
   return {
     id: entry.id,
     title: entry.title,
     date: entry.date,
-    grammarScore: getAverageGrammarScore(entry.paragraphs),
-    tone: getLatestTone(entry.paragraphs),
-    paragraphCount: entry.paragraphs.length,
+    grammarScore: getAverageGrammarScore(entry.blocks),
+    tone: getLatestTone(entry.blocks),
+    paragraphCount: textBlocks.length,
     status: entry.status,
   };
 }
 
-export function getTotalWordCount(paragraphs: JournalParagraph[]): number {
-  return paragraphs.reduce((total, p) => {
+export function getTotalWordCount(blocks: EntryBlock[]): number {
+  return getTextBlocks(blocks).reduce((total, p) => {
     const words = p.text.trim() ? p.text.trim().split(/\s+/).length : 0;
     return total + words;
   }, 0);
 }
 
-export function hasAnalyzableContent(paragraphs: JournalParagraph[]): boolean {
-  return paragraphs.some((p) => p.text.trim().length > 0);
+export function hasAnalyzableContent(blocks: EntryBlock[]): boolean {
+  return getTextBlocks(blocks).some((p) => p.text.trim().length > 0);
 }
 
-export function canSaveEntry(paragraphs: JournalParagraph[]): boolean {
-  return hasAnalyzableContent(paragraphs);
+export function canSaveEntry(blocks: EntryBlock[]): boolean {
+  return hasAnalyzableContent(blocks);
 }
 
 export function formatTodayDisplay(): string {

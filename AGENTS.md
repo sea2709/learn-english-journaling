@@ -34,8 +34,9 @@ src/
 │   ├── AuthForm.tsx             # Email + social sign-in
 │   ├── SocialAuthButtons.tsx    # Google / Facebook OAuth
 │   ├── JournalApp.tsx           # Main app shell & state orchestration
-│   ├── ParagraphEditor.tsx      # Multi-paragraph editor
+│   ├── ParagraphEditor.tsx      # Multi-block editor (text + images)
 │   ├── ParagraphBlock.tsx       # Single paragraph + Check button
+│   ├── ImageBlock.tsx           # Entry image preview + remove
 │   ├── FeedbackPanel.tsx        # Right panel: score, tone, suggestions
 │   ├── EntryList.tsx            # Left sidebar: past entries
 │   ├── SuggestionCard.tsx       # One AI suggestion card
@@ -44,8 +45,9 @@ src/
 │   ├── types.ts                 # Shared TypeScript types
 │   ├── api.ts                   # Client-side fetch wrappers + ApiError
 │   ├── ai.ts                    # AI provider, schema, mock analysis
-│   ├── entries-db.ts            # Supabase CRUD for entries/paragraphs
-│   ├── entry-utils.ts           # Paragraph helpers, list-item mapping
+│   ├── entries-db.ts            # Supabase CRUD for entries/blocks
+│   ├── entry-images.ts          # Supabase Storage upload/signed URL/delete
+│   ├── entry-utils.ts           # Block helpers, list-item mapping
 │   ├── supabase/
 │   │   ├── client.ts            # Browser Supabase client
 │   │   ├── server.ts            # Server Supabase client (cookies)
@@ -104,7 +106,7 @@ flowchart TB
 1. User clicks **Save entry** → `JournalApp.handleSave` builds a `StoredJournalEntry` (client-generated UUID if new).
 2. `POST /api/entries` validates payload, checks auth via `supabase.auth.getUser()`.
 3. `upsertEntryForUser()` in `entries-db.ts`:
-   - Updates existing entry + syncs paragraphs (upsert + delete removed IDs), or
+   - Updates existing entry + syncs blocks (upsert + delete removed IDs), or
    - Inserts new entry; if user has ≥ 50 entries, deletes oldest by `updated_at`.
 4. Saved entry returned; sidebar refreshed via `listEntries()`.
 
@@ -123,10 +125,13 @@ flowchart TB
 ```
 auth.users
  └── journal_entries (id, user_id, title, date, status, created_at, updated_at)
-      └── journal_paragraphs (id, entry_id, order, text, analyzed_text, analysis jsonb)
+      └── journal_paragraphs (id, entry_id, order, block_type, text, analyzed_text, analysis jsonb, image_path)
+storage.buckets entry-images  # private; path {user_id}/{entry_id}/{image_id}.ext
 ```
 
-RLS: all policies enforce `user_id = auth.uid()` (entries) or entry ownership (paragraphs). Schema in `supabase/schema.sql`.
+RLS: all policies enforce `user_id = auth.uid()` (entries) or entry ownership (paragraphs). Storage objects are scoped to the first path folder (`auth.uid()`). Schema in `supabase/schema.sql`.
+
+`journal_paragraphs` stores an ordered list of **blocks**: `block_type = 'text'` (writing + analysis) or `'image'` (`image_path` only).
 
 ### TypeScript types (`src/lib/types.ts`)
 
@@ -134,8 +139,10 @@ RLS: all policies enforce `user_id = auth.uid()` (entries) or entry ownership (p
 |------|---------|
 | `AnalysisResult` | AI output: `correctedText`, `tone`, `grammarScore`, `summary`, `suggestions[]` |
 | `Suggestion` | One fix: `category`, `original`, `suggestion`, `explanation` |
-| `JournalParagraph` | Client paragraph: `id`, `text`, `analysis`, `analyzedText` |
-| `StoredJournalEntry` | Full entry for save/load: `id`, `title`, `date`, `paragraphs[]`, `status` |
+| `JournalParagraph` | Text block: `type: "text"`, `id`, `text`, `analysis`, `analyzedText` |
+| `JournalImageBlock` | Image block: `type: "image"`, `id`, `path` (storage path) |
+| `EntryBlock` | `JournalParagraph \| JournalImageBlock` |
+| `StoredJournalEntry` | Full entry for save/load: `id`, `title`, `date`, `blocks[]`, `status` |
 | `JournalEntryListItem` | Sidebar summary: avg grammar score, latest tone, paragraph count |
 | `JournalEntry` | **Legacy** flat shape from Notion era — avoid for new code |
 
@@ -195,8 +202,8 @@ Use lowercase kebab-case for the slug (2–5 words from the ticket title). One t
 
 ### Do
 
-- Keep **paragraph-level** analysis — do not merge all paragraphs into one AI call unless explicitly requested.
-- Use `StoredJournalEntry` / `JournalParagraph` for persistence; use `entries-db.ts` for DB access.
+- Keep **paragraph-level** analysis — do not merge all paragraphs into one AI call unless explicitly requested. Image blocks are not analyzed.
+- Use `StoredJournalEntry` / `EntryBlock` for persistence; use `entries-db.ts` for DB access and `entry-images.ts` for Storage.
 - Use `createClient()` from `supabase/server.ts` in API routes, `supabase/client.ts` in client components.
 - Match existing Tailwind tokens (`ink-*`, `sage-*`, `coral-*`) and `paper-texture` class from globals.
 - Run `supabase/schema.sql` when changing the DB schema; update `entries-db.ts` mappers accordingly.
@@ -206,7 +213,8 @@ Use lowercase kebab-case for the slug (2–5 words from the ticket title). One t
 - Wiring up `lib/notion.ts` or `lib/mock-data.ts` — legacy, unused in current app.
 - Using `JournalEntry` type for new features — it's the old flat Notion shape.
 - Adding auth to `/api/analyze` unless product requirements change (currently public for simpler demo).
-- Storing analysis only at entry level — analysis lives on each `journal_paragraphs.analysis` JSONB column.
+- Storing analysis only at entry level — analysis lives on each text block’s `journal_paragraphs.analysis` JSONB column.
+- Persisting signed image URLs — store `image_path` only; sign on read.
 
 ### Key constants
 

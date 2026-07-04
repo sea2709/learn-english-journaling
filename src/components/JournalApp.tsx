@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import type { User } from "@supabase/supabase-js";
 import type {
+  EntryBlock,
   EntryReviewResult,
   JournalEntryListItem,
   JournalParagraph,
@@ -21,22 +22,24 @@ import {
   canSaveEntry,
   createParagraph,
   formatTodayDisplay,
+  getTextBlocks,
   hasAnalyzableContent,
+  isTextBlock,
 } from "@/lib/entry-utils";
 import { createClient } from "@/lib/supabase/client";
 import { EntryDrawer } from "./EntryDrawer";
 import { FeedbackDrawer } from "./FeedbackDrawer";
 import { ParagraphEditor } from "./ParagraphEditor";
 
-function getEntryText(paragraphs: JournalParagraph[]): string {
-  return paragraphs
+function getEntryText(blocks: EntryBlock[]): string {
+  return getTextBlocks(blocks)
     .map((p) => p.text.trim())
     .filter(Boolean)
     .join("\n\n");
 }
 
-function countInlineNotes(paragraphs: JournalParagraph[]): number {
-  return paragraphs.reduce((total, p) => {
+function countInlineNotes(blocks: EntryBlock[]): number {
+  return getTextBlocks(blocks).reduce((total, p) => {
     if (!p.analysis) return total;
     return total + p.analysis.suggestions.length;
   }, 0);
@@ -44,18 +47,15 @@ function countInlineNotes(paragraphs: JournalParagraph[]): number {
 
 export function JournalApp({ user }: { user: User }) {
   const [title, setTitle] = useState(() => formatTodayDisplay());
-  const [paragraphs, setParagraphs] = useState<JournalParagraph[]>([
-    createParagraph(),
-  ]);
-  const [activeParagraphId, setActiveParagraphId] = useState<string | null>(
-    null
-  );
+  const [blocks, setBlocks] = useState<EntryBlock[]>([createParagraph()]);
+  const [activeBlockId, setActiveBlockId] = useState<string | null>(null);
   const [analyzingParagraphId, setAnalyzingParagraphId] = useState<
     string | null
   >(null);
   const [entries, setEntries] = useState<JournalEntryListItem[]>([]);
   const [entriesLoading, setEntriesLoading] = useState(true);
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [draftEntryId, setDraftEntryId] = useState(() => crypto.randomUUID());
   const [saving, setSaving] = useState(false);
   const [mockMode, setMockMode] = useState(false);
   const [message, setMessage] = useState<{
@@ -73,9 +73,11 @@ export function JournalApp({ user }: { user: User }) {
   );
   const [reviewLoading, setReviewLoading] = useState(false);
 
+  const entryId = selectedId ?? draftEntryId;
+
   const inlineNoteCount = useMemo(
-    () => countInlineNotes(paragraphs),
-    [paragraphs]
+    () => countInlineNotes(blocks),
+    [blocks]
   );
 
   const refreshEntries = useCallback(async () => {
@@ -96,7 +98,7 @@ export function JournalApp({ user }: { user: User }) {
 
   useEffect(() => {
     refreshEntries();
-    setActiveParagraphId((prev) => prev ?? paragraphs[0]?.id ?? null);
+    setActiveBlockId((prev) => prev ?? blocks[0]?.id ?? null);
   }, [refreshEntries]);
 
   useEffect(() => {
@@ -105,35 +107,38 @@ export function JournalApp({ user }: { user: User }) {
     return () => document.body.classList.remove("drawer-open");
   }, [entriesOpen, feedbackOpen]);
 
-  const handleParagraphsChange = (next: JournalParagraph[]) => {
-    setParagraphs(next);
+  const handleBlocksChange = (next: EntryBlock[]) => {
+    setBlocks(next);
     setEntryReview(null);
   };
 
   const handleAnalyzeParagraph = async (paragraphId: string) => {
-    const paragraph = paragraphs.find((p) => p.id === paragraphId);
+    const paragraph = blocks.find(
+      (block): block is JournalParagraph =>
+        block.id === paragraphId && isTextBlock(block)
+    );
     if (!paragraph?.text.trim()) {
       setMessage({ type: "error", text: "Please write something first." });
       return;
     }
 
     setAnalyzingParagraphId(paragraphId);
-    setActiveParagraphId(paragraphId);
+    setActiveBlockId(paragraphId);
     setMessage(null);
 
     try {
       const { analysis, mock } = await analyzeText(paragraph.text.trim());
       setMockMode(mock);
 
-      setParagraphs((prev) =>
-        prev.map((p) =>
-          p.id === paragraphId
+      setBlocks((prev) =>
+        prev.map((block) =>
+          block.type === "text" && block.id === paragraphId
             ? {
-                ...p,
+                ...block,
                 analysis,
                 analyzedText: paragraph.text.trim(),
               }
-            : p
+            : block
         )
       );
     } catch (error) {
@@ -148,7 +153,7 @@ export function JournalApp({ user }: { user: User }) {
   };
 
   const handleRequestReview = async () => {
-    const text = getEntryText(paragraphs);
+    const text = getEntryText(blocks);
     if (!text) {
       setMessage({ type: "error", text: "Write something before reviewing." });
       return;
@@ -172,13 +177,13 @@ export function JournalApp({ user }: { user: User }) {
 
   const handleOpenFeedback = () => {
     setFeedbackOpen(true);
-    if (!entryReview && !reviewLoading && hasAnalyzableContent(paragraphs)) {
+    if (!entryReview && !reviewLoading && hasAnalyzableContent(blocks)) {
       handleRequestReview();
     }
   };
 
   const handleSave = async () => {
-    if (!canSaveEntry(paragraphs)) {
+    if (!canSaveEntry(blocks)) {
       setMessage({
         type: "error",
         text: "Write at least one paragraph before saving.",
@@ -191,10 +196,10 @@ export function JournalApp({ user }: { user: User }) {
 
     const today = new Date().toISOString().split("T")[0];
     const entry: StoredJournalEntry = {
-      id: selectedId ?? crypto.randomUUID(),
+      id: entryId,
       title: title.trim() || formatTodayDisplay(),
       date: today,
-      paragraphs,
+      blocks,
       status: "saved",
     };
 
@@ -215,9 +220,10 @@ export function JournalApp({ user }: { user: User }) {
   const resetEditor = () => {
     const first = createParagraph();
     setTitle(formatTodayDisplay());
-    setParagraphs([first]);
-    setActiveParagraphId(first.id);
+    setBlocks([first]);
+    setActiveBlockId(first.id);
     setSelectedId(null);
+    setDraftEntryId(crypto.randomUUID());
     setMockMode(false);
     setEntryReview(null);
   };
@@ -253,12 +259,14 @@ export function JournalApp({ user }: { user: User }) {
       const stored = await fetchEntry(entry.id);
       setSelectedId(stored.id);
       setTitle(stored.title);
-      setParagraphs(stored.paragraphs);
+      setBlocks(stored.blocks);
       setEntryReview(null);
 
-      const firstAnalyzed = stored.paragraphs.find((p) => p.analysis);
-      const activeId = firstAnalyzed?.id ?? stored.paragraphs[0]?.id ?? null;
-      setActiveParagraphId(activeId);
+      const textBlocks = getTextBlocks(stored.blocks);
+      const firstAnalyzed = textBlocks.find((p) => p.analysis);
+      const activeId =
+        firstAnalyzed?.id ?? textBlocks[0]?.id ?? stored.blocks[0]?.id ?? null;
+      setActiveBlockId(activeId);
       setMessage(null);
       setMockMode(false);
     } catch (error) {
@@ -378,12 +386,15 @@ export function JournalApp({ user }: { user: User }) {
         </div>
 
         <ParagraphEditor
-          paragraphs={paragraphs}
-          activeParagraphId={activeParagraphId}
+          blocks={blocks}
+          activeBlockId={activeBlockId}
           analyzingParagraphId={analyzingParagraphId}
-          onParagraphsChange={handleParagraphsChange}
-          onActiveParagraphChange={setActiveParagraphId}
+          userId={user.id}
+          entryId={entryId}
+          onBlocksChange={handleBlocksChange}
+          onActiveBlockChange={setActiveBlockId}
           onAnalyzeParagraph={handleAnalyzeParagraph}
+          onError={(text) => setMessage({ type: "error", text })}
         />
 
         <div className="mt-8 flex justify-end border-t border-paper-line/60 pt-6">
@@ -391,7 +402,7 @@ export function JournalApp({ user }: { user: User }) {
             type="button"
             onClick={handleSave}
             className="feedback-btn"
-            disabled={saving || !canSaveEntry(paragraphs)}
+            disabled={saving || !canSaveEntry(blocks)}
           >
             <span className="pen" aria-hidden>
               <svg

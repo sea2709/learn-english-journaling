@@ -101,12 +101,12 @@ flowchart TB
 
 ### Request flow: save entry
 
-1. User clicks **Save entry** → `JournalApp.handleSave` builds a `StoredJournalEntry` (client-generated UUID if new).
-2. `POST /api/entries` validates payload, checks auth via `supabase.auth.getUser()`.
+1. Edits to title or blocks trigger debounced auto-save (10s) via `useAutoSaveEntry` in `JournalApp`; user can also click **Save** for an immediate write.
+2. Both paths build a `StoredJournalEntry` (client-generated UUID for new entries) and call `POST /api/entries`.
 3. `upsertEntryForUser()` in `entries-db.ts`:
    - Updates existing entry + syncs blocks (upsert + delete removed IDs), or
    - Inserts new entry; if user has ≥ 50 entries, deletes oldest by `updated_at`.
-4. Saved entry returned; sidebar refreshed via `listEntries()`.
+4. Saved entry returned; sidebar list refreshes on manual save, when the entries drawer opens, or on a debounced timer after auto-save.
 
 ### Auth flow
 
@@ -226,7 +226,7 @@ Use lowercase kebab-case for the slug (2–5 words from the ticket title). One t
 | Change save/load logic | `src/lib/entries-db.ts`, `src/app/api/entries/` |
 | DB schema / RLS | `supabase/schema.sql` |
 | Auth providers / forms | `AuthForm.tsx`, `SocialAuthButtons.tsx`, Supabase dashboard |
-| Editor behavior | `ParagraphEditor.tsx`, `ParagraphBlock.tsx`, `JournalApp.tsx` |
+| Editor behavior | `ParagraphEditor.tsx`, `ParagraphBlock.tsx`, `JournalApp.tsx`, `hooks/useAutoSaveEntry.ts` |
 | Feedback UI | `FeedbackPanel.tsx`, `SuggestionCard.tsx` |
 | Sidebar entries list | `EntryDrawer.tsx`, `entry-utils.toListItem()` |
 

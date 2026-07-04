@@ -7,7 +7,6 @@ import type {
   EntryReviewResult,
   JournalEntryListItem,
   JournalParagraph,
-  StoredJournalEntry,
 } from "@/lib/types";
 import {
   analyzeEntryReview,
@@ -16,7 +15,6 @@ import {
   deleteEntry,
   fetchEntry,
   listEntries,
-  saveEntry as saveEntryApi,
 } from "@/lib/api";
 import {
   canSaveEntry,
@@ -26,6 +24,10 @@ import {
   hasAnalyzableContent,
   isTextBlock,
 } from "@/lib/entry-utils";
+import {
+  getSaveStatusLabel,
+  useAutoSaveEntry,
+} from "@/hooks/useAutoSaveEntry";
 import { createClient } from "@/lib/supabase/client";
 import { EntryDrawer } from "./EntryDrawer";
 import { FeedbackDrawer } from "./FeedbackDrawer";
@@ -56,7 +58,7 @@ export function JournalApp({ user }: { user: User }) {
   const [entriesLoading, setEntriesLoading] = useState(true);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [draftEntryId, setDraftEntryId] = useState(() => crypto.randomUUID());
-  const [saving, setSaving] = useState(false);
+  const [entriesStale, setEntriesStale] = useState(false);
   const [mockMode, setMockMode] = useState(false);
   const [message, setMessage] = useState<{
     type: "success" | "error";
@@ -79,6 +81,21 @@ export function JournalApp({ user }: { user: User }) {
     () => countInlineNotes(blocks),
     [blocks]
   );
+
+  const { saveStatus, isDirty, saveNow, flush, markSaved } = useAutoSaveEntry({
+    entryId,
+    title,
+    blocks,
+    canSave: canSaveEntry(blocks),
+    debounceMs: 10_000,
+    onSaved: (saved) => {
+      setSelectedId(saved.id);
+      setEntriesStale(true);
+    },
+  });
+
+  const saveStatusLabel = getSaveStatusLabel(saveStatus, isDirty);
+  const isSaving = saveStatus === "saving";
 
   const refreshEntries = useCallback(async () => {
     setEntriesLoading(true);
@@ -106,6 +123,21 @@ export function JournalApp({ user }: { user: User }) {
     document.body.classList.toggle("drawer-open", drawerOpen);
     return () => document.body.classList.remove("drawer-open");
   }, [entriesOpen, feedbackOpen]);
+
+  useEffect(() => {
+    if (!entriesOpen || !entriesStale) return;
+    void refreshEntries().then(() => setEntriesStale(false));
+  }, [entriesOpen, entriesStale, refreshEntries]);
+
+  useEffect(() => {
+    if (!entriesStale) return;
+
+    const timer = setTimeout(() => {
+      void refreshEntries().then(() => setEntriesStale(false));
+    }, 30_000);
+
+    return () => clearTimeout(timer);
+  }, [entriesStale, refreshEntries]);
 
   const handleBlocksChange = (next: EntryBlock[]) => {
     setBlocks(next);
@@ -191,44 +223,33 @@ export function JournalApp({ user }: { user: User }) {
       return;
     }
 
-    setSaving(true);
     setMessage(null);
 
-    const today = new Date().toISOString().split("T")[0];
-    const entry: StoredJournalEntry = {
-      id: entryId,
-      title: title.trim() || formatTodayDisplay(),
-      date: today,
-      blocks,
-      status: "saved",
-    };
-
-    try {
-      const saved = await saveEntryApi(entry);
-      setSelectedId(saved.id);
+    const result = await saveNow();
+    if (result.ok) {
       await refreshEntries();
+      setEntriesStale(false);
       setMessage({ type: "success", text: "Saved" });
-    } catch (error) {
-      const text =
-        error instanceof ApiError ? error.message : "Failed to save entry.";
-      setMessage({ type: "error", text });
-    } finally {
-      setSaving(false);
+    } else if (result.error) {
+      setMessage({ type: "error", text: result.error });
     }
   };
 
   const resetEditor = () => {
     const first = createParagraph();
-    setTitle(formatTodayDisplay());
+    const newTitle = formatTodayDisplay();
+    setTitle(newTitle);
     setBlocks([first]);
     setActiveBlockId(first.id);
     setSelectedId(null);
     setDraftEntryId(crypto.randomUUID());
     setMockMode(false);
     setEntryReview(null);
+    markSaved(newTitle, [first]);
   };
 
-  const handleNewEntry = () => {
+  const handleNewEntry = async () => {
+    await flush();
     resetEditor();
     setMessage(null);
     setDrawerMessage(null);
@@ -255,12 +276,19 @@ export function JournalApp({ user }: { user: User }) {
   };
 
   const handleSelectEntry = async (entry: JournalEntryListItem) => {
+    const flushResult = await flush();
+    if (!flushResult.ok && flushResult.error) {
+      setMessage({ type: "error", text: flushResult.error });
+      return;
+    }
+
     try {
       const stored = await fetchEntry(entry.id);
       setSelectedId(stored.id);
       setTitle(stored.title);
       setBlocks(stored.blocks);
       setEntryReview(null);
+      markSaved(stored.title, stored.blocks);
 
       const textBlocks = getTextBlocks(stored.blocks);
       const firstAnalyzed = textBlocks.find((p) => p.analysis);
@@ -303,7 +331,7 @@ export function JournalApp({ user }: { user: User }) {
         <div className="top-actions">
           <button
             type="button"
-            onClick={handleNewEntry}
+            onClick={() => void handleNewEntry()}
             className="lnk"
             aria-label="New entry"
           >
@@ -410,12 +438,20 @@ export function JournalApp({ user }: { user: User }) {
           onError={(text) => setMessage({ type: "error", text })}
         />
 
-        <div className="mt-8 flex justify-end border-t border-paper-line/60 pt-6">
+        <div className="mt-8 flex items-center justify-end gap-4 border-t border-paper-line/60 pt-6">
+          {saveStatusLabel && (
+            <span
+              className="mr-auto font-sans text-sm text-ink-400"
+              aria-live="polite"
+            >
+              {saveStatusLabel}
+            </span>
+          )}
           <button
             type="button"
             onClick={handleSave}
             className="feedback-btn"
-            disabled={saving || !canSaveEntry(blocks)}
+            disabled={isSaving || !canSaveEntry(blocks)}
           >
             <span className="pen" aria-hidden>
               <svg
@@ -432,7 +468,7 @@ export function JournalApp({ user }: { user: User }) {
                 />
               </svg>
             </span>{" "}
-            {saving ? "Saving…" : "Save"}
+            {isSaving ? "Saving…" : "Save"}
           </button>
         </div>
       </main>
@@ -449,7 +485,7 @@ export function JournalApp({ user }: { user: User }) {
           setEntriesOpen(false);
           setDrawerMessage(null);
         }}
-        onNewEntry={handleNewEntry}
+        onNewEntry={() => void handleNewEntry()}
         onDelete={handleDeleteEntry}
       />
 

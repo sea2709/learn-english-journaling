@@ -78,3 +78,54 @@ export function formatTodayDisplay(): string {
     year: "numeric",
   });
 }
+
+export interface EntryMonthGroup {
+  key: string;
+  label: string;
+  entries: JournalEntryListItem[];
+}
+
+const MONTH_KEY_RE = /^\d{4}-\d{2}$/;
+
+function monthKeyFromDate(dateStr: string): string {
+  if (!dateStr) return "unknown";
+  const key = dateStr.slice(0, 7);
+  return MONTH_KEY_RE.test(key) ? key : "unknown";
+}
+
+function formatMonthLabel(key: string): string {
+  if (key === "unknown") return "No date";
+  const date = new Date(`${key}-01T12:00:00`);
+  return date.toLocaleDateString("en-US", {
+    month: "long",
+    year: "numeric",
+  });
+}
+
+/** Group entries by calendar month of `entry.date`, newest months first. */
+export function groupEntriesByMonth(
+  entries: JournalEntryListItem[]
+): EntryMonthGroup[] {
+  const groups = new Map<string, JournalEntryListItem[]>();
+
+  for (const entry of entries) {
+    const key = monthKeyFromDate(entry.date);
+    const list = groups.get(key);
+    if (list) list.push(entry);
+    else groups.set(key, [entry]);
+  }
+
+  return [...groups.entries()]
+    .map(([key, monthEntries]) => ({
+      key,
+      label: formatMonthLabel(key),
+      entries: [...monthEntries].sort((a, b) =>
+        (b.date || "").localeCompare(a.date || "")
+      ),
+    }))
+    .sort((a, b) => {
+      if (a.key === "unknown") return 1;
+      if (b.key === "unknown") return -1;
+      return b.key.localeCompare(a.key);
+    });
+}

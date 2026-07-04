@@ -77,7 +77,7 @@ export function ImageBlock({
             e.stopPropagation();
             onRemove(block.id);
           }}
-          className="absolute right-2 top-2 rounded bg-ink-900/70 px-2 py-1 font-sans text-[11px] text-white opacity-0 transition-opacity group-hover:opacity-100 focus:opacity-100"
+          className="absolute right-2 top-2 min-h-11 min-w-11 rounded bg-ink-900/70 px-2 py-1 font-sans text-[11px] text-white opacity-100 transition-opacity focus:opacity-100 sm:min-h-0 sm:min-w-0 sm:opacity-0 sm:group-hover:opacity-100"
         >
           Remove
         </button>

@@ -28,7 +28,7 @@ export function SuggestionRow({
       <button
         type="button"
         onClick={() => setExpanded((e) => !e)}
-        className="flex w-full items-start gap-2 py-3 text-left"
+        className="flex min-h-11 w-full items-start gap-2 py-3 text-left sm:min-h-0"
         aria-expanded={expanded}
       >
         <svg
@@ -47,7 +47,7 @@ export function SuggestionRow({
           <span className="text-[11px] font-medium uppercase tracking-wide text-pen">
             {label}
           </span>
-          <p className="mt-0.5 truncate font-mono text-sm text-ink-700">
+          <p className="mt-0.5 break-words font-mono text-sm text-ink-700 sm:truncate">
             {suggestion.original}
           </p>
         </div>

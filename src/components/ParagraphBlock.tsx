@@ -33,6 +33,9 @@ export function ParagraphBlock({
   const stale = isParagraphStale(paragraph);
   const hasNotes = paragraph.analysis && !stale;
   const dimmed = isWriting && !isActive;
+  const canCheck = Boolean(paragraph.text.trim());
+  const noteCount = paragraph.analysis?.suggestions.length ?? 0;
+  const notesLabel = `${noteCount} note${noteCount === 1 ? "" : "s"}`;
 
   const adjustHeight = () => {
     const el = textareaRef.current;
@@ -92,9 +95,28 @@ export function ParagraphBlock({
               : "Continue writing…"
           }
           rows={1}
-          className="w-full resize-none overflow-hidden border-0 bg-transparent py-2 font-mono text-[15px] leading-[1.75] text-ink-900 placeholder:text-ink-400 focus:outline-none focus:ring-0"
+          className="w-full resize-none overflow-hidden border-0 bg-transparent py-2 font-mono text-base leading-[1.75] text-ink-900 placeholder:text-ink-400 focus:outline-none focus:ring-0 sm:text-[15px]"
         />
       </div>
+
+      {canCheck && (
+        <div className="mt-1 flex justify-end pl-12">
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              onAnalyze(paragraph.id);
+            }}
+            disabled={isAnalyzing}
+            className="feedback-btn min-h-11 px-4 text-xs sm:min-h-0 sm:px-3 sm:py-1.5"
+          >
+            <span className="pen" aria-hidden>
+              ✓
+            </span>
+            {isAnalyzing ? "Checking…" : "Check"}
+          </button>
+        </div>
+      )}
 
       {hasNotes && paragraph.analysis && (
         <div className="ml-12 mt-1 border-l-2 border-pen/30 pl-3">
@@ -104,7 +126,7 @@ export function ParagraphBlock({
               e.stopPropagation();
               setNotesExpanded((v) => !v);
             }}
-            className="flex items-center gap-1.5 text-[11px] font-medium uppercase tracking-wide text-pen"
+            className="flex min-h-11 items-center gap-1.5 py-2 text-[11px] font-medium uppercase tracking-wide text-pen sm:min-h-0 sm:py-0"
             aria-expanded={notesExpanded}
           >
             <svg
@@ -123,8 +145,7 @@ export function ParagraphBlock({
                 d="M9 5l7 7-7 7"
               />
             </svg>
-            {paragraph.analysis.suggestions.length} note
-            {paragraph.analysis.suggestions.length === 1 ? "" : "s"}
+            {notesLabel}
           </button>
 
           {notesExpanded && (
@@ -133,7 +154,10 @@ export function ParagraphBlock({
                 {paragraph.analysis.summary}
               </p>
               {paragraph.analysis.suggestions.map((suggestion, i) => (
-                <SuggestionRow key={`${suggestion.original}-${i}`} suggestion={suggestion} />
+                <SuggestionRow
+                  key={`${suggestion.original}-${i}`}
+                  suggestion={suggestion}
+                />
               ))}
             </div>
           )}

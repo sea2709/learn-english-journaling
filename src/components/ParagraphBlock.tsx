@@ -11,6 +11,8 @@ interface ParagraphBlockProps {
   isActive: boolean;
   isWriting: boolean;
   isAnalyzing: boolean;
+  focusSummary: string;
+  preferencesLoading: boolean;
   onTextChange: (id: string, text: string) => void;
   onSelect: (id: string) => void;
   onAnalyze: (id: string) => void;
@@ -23,6 +25,8 @@ export function ParagraphBlock({
   isActive,
   isWriting,
   isAnalyzing,
+  focusSummary,
+  preferencesLoading,
   onTextChange,
   onSelect,
   onAnalyze,
@@ -89,24 +93,31 @@ export function ParagraphBlock({
       </div>
 
       {canCheck && (
-        <div className="mt-1 flex items-center pl-14">
-          {stale && !isAnalyzing && (
-            <span className="text-[11px] text-pen/70">edited</span>
+        <div className="mt-1 pl-14">
+          <div className="flex items-center">
+            {stale && !isAnalyzing && (
+              <span className="text-[11px] text-pen/70">edited</span>
+            )}
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                onAnalyze(paragraph.id);
+              }}
+              disabled={isAnalyzing}
+              className="feedback-btn ml-auto min-h-11 px-4 text-xs sm:min-h-0 sm:px-3 sm:py-1.5"
+            >
+              <span className="pen" aria-hidden>
+                ✓
+              </span>
+              {isAnalyzing ? "Checking…" : "Check"}
+            </button>
+          </div>
+          {isActive && !preferencesLoading && (
+            <p className="mt-1 text-right font-sans text-xs text-ink-500">
+              Check focus: {focusSummary}
+            </p>
           )}
-          <button
-            type="button"
-            onClick={(e) => {
-              e.stopPropagation();
-              onAnalyze(paragraph.id);
-            }}
-            disabled={isAnalyzing}
-            className="feedback-btn ml-auto min-h-11 px-4 text-xs sm:min-h-0 sm:px-3 sm:py-1.5"
-          >
-            <span className="pen" aria-hidden>
-              ✓
-            </span>
-            {isAnalyzing ? "Checking…" : "Check"}
-          </button>
         </div>
       )}
 

@@ -195,3 +195,33 @@ create policy "Users can delete own entry images"
     bucket_id = 'entry-images'
     and (storage.foldername(name))[1] = auth.uid()::text
   );
+
+-- Per-user AI check preferences (focus areas + optional learning goal)
+create table if not exists public.user_preferences (
+  user_id uuid primary key references auth.users (id) on delete cascade,
+  analysis_preferences jsonb not null default '{"focusAreas":["grammar","spelling","tone","word-choice","naturalness","punctuation"]}',
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+drop trigger if exists user_preferences_set_updated_at on public.user_preferences;
+create trigger user_preferences_set_updated_at
+  before update on public.user_preferences
+  for each row execute function public.set_updated_at();
+
+alter table public.user_preferences enable row level security;
+
+drop policy if exists "Users can view own preferences" on public.user_preferences;
+create policy "Users can view own preferences"
+  on public.user_preferences for select
+  using (auth.uid() = user_id);
+
+drop policy if exists "Users can insert own preferences" on public.user_preferences;
+create policy "Users can insert own preferences"
+  on public.user_preferences for insert
+  with check (auth.uid() = user_id);
+
+drop policy if exists "Users can update own preferences" on public.user_preferences;
+create policy "Users can update own preferences"
+  on public.user_preferences for update
+  using (auth.uid() = user_id);

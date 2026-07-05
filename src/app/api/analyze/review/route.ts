@@ -1,4 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
+import { ZodError } from "zod";
+import {
+  DEFAULT_ANALYSIS_PREFERENCES,
+  parseAnalysisPreferences,
+} from "@/lib/analysis-preferences";
 import {
   getMockEntryReview,
   isAiConfigured,
@@ -24,8 +29,23 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    let preferences = DEFAULT_ANALYSIS_PREFERENCES;
+    if (body.preferences !== undefined) {
+      try {
+        preferences = parseAnalysisPreferences(body.preferences);
+      } catch (error) {
+        const message =
+          error instanceof ZodError
+            ? error.issues[0]?.message ?? "Invalid preferences."
+            : "Invalid preferences.";
+        return NextResponse.json({ error: message }, { status: 400 });
+      }
+    }
+
     const useMock = !isAiConfigured();
-    const review = useMock ? getMockEntryReview(text) : await reviewEntry(text);
+    const review = useMock
+      ? getMockEntryReview(text, preferences)
+      : await reviewEntry(text, preferences);
 
     return NextResponse.json({ review, mock: useMock });
   } catch (error) {

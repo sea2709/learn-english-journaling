@@ -1,4 +1,5 @@
 import type {
+  AnalysisPreferences,
   AnalysisResult,
   AdminStats,
   AdminUserSort,
@@ -28,27 +29,51 @@ async function parseResponse<T>(response: Response): Promise<T> {
 }
 
 export async function analyzeText(
-  text: string
+  text: string,
+  preferences?: AnalysisPreferences
 ): Promise<{ analysis: AnalysisResult; mock: boolean }> {
   const response = await fetch("/api/analyze", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ text }),
+    body: JSON.stringify({ text, preferences }),
   });
 
   return parseResponse(response);
 }
 
 export async function analyzeEntryReview(
-  text: string
+  text: string,
+  preferences?: AnalysisPreferences
 ): Promise<{ review: EntryReviewResult; mock: boolean }> {
   const response = await fetch("/api/analyze/review", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ text }),
+    body: JSON.stringify({ text, preferences }),
   });
 
   return parseResponse(response);
+}
+
+export async function fetchPreferences(): Promise<AnalysisPreferences> {
+  const response = await fetch("/api/preferences");
+  const data = await parseResponse<{ preferences: AnalysisPreferences }>(
+    response
+  );
+  return data.preferences;
+}
+
+export async function savePreferences(
+  preferences: AnalysisPreferences
+): Promise<AnalysisPreferences> {
+  const response = await fetch("/api/preferences", {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(preferences),
+  });
+  const data = await parseResponse<{ preferences: AnalysisPreferences }>(
+    response
+  );
+  return data.preferences;
 }
 
 export async function listEntries(): Promise<JournalEntryListItem[]> {

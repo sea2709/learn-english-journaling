@@ -8,6 +8,11 @@ const categoryMeta: Record<
   { label: string; color: string; icon: string }
 > = {
   grammar: { label: "Grammar", color: "bg-coral-100 text-coral-800", icon: "✎" },
+  spelling: {
+    label: "Spelling",
+    color: "bg-rose-100 text-rose-800",
+    icon: "Aa",
+  },
   tone: { label: "Tone", color: "bg-purple-100 text-purple-800", icon: "♪" },
   "word-choice": {
     label: "Word choice",

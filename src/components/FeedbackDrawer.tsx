@@ -9,6 +9,7 @@ interface FeedbackDrawerProps {
   open: boolean;
   review: EntryReviewResult | null;
   loading: boolean;
+  focusSummary: string;
   onClose: () => void;
   onRequestReview: () => void;
 }
@@ -17,6 +18,7 @@ export function FeedbackDrawer({
   open,
   review,
   loading,
+  focusSummary,
   onClose,
   onRequestReview,
 }: FeedbackDrawerProps) {
@@ -80,7 +82,7 @@ export function FeedbackDrawer({
                 Reviewing your entry…
               </p>
               <p className="mt-1 text-xs text-ink-500">
-                Checking grammar, tone, and flow
+                Focusing on {focusSummary.toLowerCase()}
               </p>
             </div>
           ) : !review ? (
@@ -89,8 +91,8 @@ export function FeedbackDrawer({
                 Full-entry review
               </p>
               <p className="mt-2 max-w-xs text-sm leading-relaxed text-ink-500">
-                Get AI feedback on your entire journal entry — grammar, tone,
-                word choice, and flow across all paragraphs.
+                Get AI feedback on your entire journal entry, focused on{" "}
+                {focusSummary.toLowerCase()}.
               </p>
               <button
                 type="button"

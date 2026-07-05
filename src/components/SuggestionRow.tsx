@@ -5,6 +5,7 @@ import type { Suggestion, SuggestionCategory } from "@/lib/types";
 
 const categoryLabels: Record<SuggestionCategory, string> = {
   grammar: "Grammar",
+  spelling: "Spelling",
   tone: "Tone",
   "word-choice": "Word choice",
   naturalness: "Naturalness",

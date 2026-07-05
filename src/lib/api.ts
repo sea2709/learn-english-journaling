@@ -1,12 +1,17 @@
 import type {
   AnalysisPreferences,
   AnalysisResult,
+  AdminFeedbackResponse,
+  AdminFeedbackRow,
+  AdminFeedbackSort,
   AdminStats,
   AdminUserSort,
   AdminUsersResponse,
   EntryReviewResult,
+  FeedbackStatus,
   JournalEntryListItem,
   StoredJournalEntry,
+  UserFeedbackSubmission,
 } from "./types";
 
 export class ApiError extends Error {
@@ -136,4 +141,53 @@ export async function fetchAdminUsers(options: {
   );
 
   return parseResponse<AdminUsersResponse>(response);
+}
+
+export async function submitFeedback(
+  payload: UserFeedbackSubmission
+): Promise<void> {
+  const response = await fetch("/api/feedback", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+
+  await parseResponse(response);
+}
+
+export async function fetchAdminFeedback(options: {
+  page?: number;
+  perPage?: number;
+  status?: FeedbackStatus;
+  sort?: AdminFeedbackSort;
+  order?: "asc" | "desc";
+}): Promise<AdminFeedbackResponse> {
+  const params = new URLSearchParams();
+
+  if (options.page) params.set("page", String(options.page));
+  if (options.perPage) params.set("perPage", String(options.perPage));
+  if (options.status) params.set("status", options.status);
+  if (options.sort) params.set("sort", options.sort);
+  if (options.order) params.set("order", options.order);
+
+  const query = params.toString();
+  const response = await fetch(
+    `/api/admin/feedback${query ? `?${query}` : ""}`
+  );
+
+  return parseResponse<AdminFeedbackResponse>(response);
+}
+
+export async function updateAdminFeedback(
+  id: string,
+  patch: { status?: FeedbackStatus; internalNotes?: string | null }
+): Promise<AdminFeedbackRow> {
+  const response = await fetch(`/api/admin/feedback/${id}`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(patch),
+  });
+
+  const data = await parseResponse<{ feedback: AdminFeedbackRow }>(response);
+  return data.feedback;
 }

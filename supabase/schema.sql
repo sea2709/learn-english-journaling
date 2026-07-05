@@ -225,3 +225,36 @@ drop policy if exists "Users can update own preferences" on public.user_preferen
 create policy "Users can update own preferences"
   on public.user_preferences for update
   using (auth.uid() = user_id);
+
+-- User-submitted app feedback (admin reads via service role)
+create table if not exists public.user_feedback (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references auth.users (id) on delete cascade,
+  user_email text not null,
+  category text not null,
+  message text not null,
+  contact_note text,
+  status text not null default 'new',
+  internal_notes text,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  constraint user_feedback_category_check
+    check (category in ('bug', 'idea', 'other')),
+  constraint user_feedback_status_check
+    check (status in ('new', 'read', 'archived'))
+);
+
+create index if not exists user_feedback_status_created_idx
+  on public.user_feedback (status, created_at desc);
+
+drop trigger if exists user_feedback_set_updated_at on public.user_feedback;
+create trigger user_feedback_set_updated_at
+  before update on public.user_feedback
+  for each row execute function public.set_updated_at();
+
+alter table public.user_feedback enable row level security;
+
+drop policy if exists "Users can insert own feedback" on public.user_feedback;
+create policy "Users can insert own feedback"
+  on public.user_feedback for insert
+  with check (auth.uid() = user_id);

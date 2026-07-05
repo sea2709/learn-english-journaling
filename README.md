@@ -1,11 +1,12 @@
 # English Journal
 
-Learn English through daily journaling. Write paragraph by paragraph, get AI feedback on each one, and save your entries to your Supabase account.
+Learn English through daily journaling. Write paragraph by paragraph, get AI feedback on each one, customize what the AI checks, and save your entries to your Supabase account.
 
 ## Features
 
 - **Paragraph-by-paragraph writing** — build a journal entry over time, one paragraph at a time
 - **Per-paragraph AI feedback** — press `Ctrl+Enter` (or click Check) to analyze only the current paragraph; suggestions appear inline under each block
+- **Customizable check focus** — choose which areas AI reviews (grammar, spelling, tone, word choice, naturalness, punctuation) and set an optional learning goal; saved to your account
 - **Full-entry review** — open the Feedback drawer for a holistic grammar score, tone, polished version, and suggestions across the whole entry
 - **Auto-save** — entries save automatically every 10 seconds; click Save for an immediate write
 - **Past entries drawer** — browse entries grouped by month, reload, or delete
@@ -21,7 +22,7 @@ Learn English through daily journaling. Write paragraph by paragraph, get AI fee
 2. Open **Project Settings → API** and copy:
    - Project URL → `NEXT_PUBLIC_SUPABASE_URL`
    - `anon` `public` key → `NEXT_PUBLIC_SUPABASE_ANON_KEY`
-3. Open **SQL Editor** and run the schema in [`supabase/schema.sql`](supabase/schema.sql)
+3. Open **SQL Editor** and run the schema in [`supabase/schema.sql`](supabase/schema.sql) (re-run after updates to pick up new tables such as `user_preferences`)
 
 ### 2. Configure environment
 
@@ -82,32 +83,35 @@ Without an API key, the app runs in demo mode with sample analysis responses.
 ## How to use
 
 1. Register or sign in
-2. Write a paragraph in the editor
-3. Press **Ctrl+Enter** (or click **Check**) to get AI feedback on that paragraph — suggestions appear inline below the block
-4. Press **Enter** to add another paragraph, or **Add image** to insert a photo between blocks
-5. Open **Feedback** in the topbar for a full-entry review
-6. Entries auto-save every 10 seconds; use **Save** for an immediate write
-7. Open **Entries** in the topbar to browse, reload, or delete past entries
+2. (Optional) Open **Check focus** in the topbar to choose which areas AI should review and add a short learning goal (e.g. "I'm preparing for IELTS")
+3. Write a paragraph in the editor
+4. Press **Ctrl+Enter** (or click **Check**) to get AI feedback on that paragraph — suggestions appear inline below the block
+5. Press **Enter** to add another paragraph, or **Add image** to insert a photo between blocks
+6. Open **Feedback** in the topbar for a full-entry review (uses your current check focus settings)
+7. Entries auto-save every 10 seconds; use **Save** for an immediate write
+8. Open **Entries** in the topbar to browse, reload, or delete past entries
 
 ## Data model
 
 ```
 auth.users (Supabase Auth)
- └── journal_entries (title, date, status)
-      └── journal_paragraphs (block_type, text, analysis JSON, image_path, order)
+ ├── journal_entries (title, date, status)
+ │    └── journal_paragraphs (block_type, text, analysis JSON, image_path, order)
+ └── user_preferences (analysis focus areas + optional learning goal)
 storage.buckets entry-images  # private images for entries
 ```
 
-Row Level Security policies enforce that `user_id = auth.uid()` on all journal tables. Entry images live in the private `entry-images` bucket (`{user_id}/{entry_id}/…`).
+Row Level Security policies enforce that `user_id = auth.uid()` on all journal and preference tables. Entry images live in the private `entry-images` bucket (`{user_id}/{entry_id}/…`).
 
 ## Layout
 
 | Area | Purpose |
 |------|---------|
-| Topbar | Entries drawer, Feedback drawer, save status, sign out |
+| Topbar | Entries drawer, Feedback drawer, Check focus settings, save status, sign out |
 | Center | Title + paragraph blocks with inline per-paragraph notes |
 | Left drawer | Saved journal entries grouped by month |
 | Right drawer | Full-entry AI review |
+| Check focus overlay | Toggle focus areas and set an optional learning goal |
 
 ## Admin dashboard
 

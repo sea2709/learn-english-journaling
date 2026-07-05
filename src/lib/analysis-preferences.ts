@@ -3,6 +3,7 @@ import type { AnalysisFocusArea, AnalysisPreferences, SuggestionCategory } from 
 
 export const ALL_FOCUS_AREAS: AnalysisFocusArea[] = [
   "grammar",
+  "spelling",
   "tone",
   "word-choice",
   "naturalness",
@@ -15,6 +16,7 @@ export const DEFAULT_ANALYSIS_PREFERENCES: AnalysisPreferences = {
 
 export const FOCUS_AREA_LABELS: Record<SuggestionCategory, string> = {
   grammar: "Grammar",
+  spelling: "Spelling",
   tone: "Tone",
   "word-choice": "Word choice",
   naturalness: "Naturalness",
@@ -23,6 +25,7 @@ export const FOCUS_AREA_LABELS: Record<SuggestionCategory, string> = {
 
 const focusAreaSchema = z.enum([
   "grammar",
+  "spelling",
   "tone",
   "word-choice",
   "naturalness",

@@ -20,6 +20,8 @@ interface ParagraphEditorProps {
   analyzingParagraphId: string | null;
   userId: string;
   entryId: string;
+  focusSummary: string;
+  preferencesLoading: boolean;
   onBlocksChange: (blocks: EntryBlock[]) => void;
   onActiveBlockChange: (id: string) => void;
   onAnalyzeParagraph: (id: string) => void;
@@ -32,6 +34,8 @@ export function ParagraphEditor({
   analyzingParagraphId,
   userId,
   entryId,
+  focusSummary,
+  preferencesLoading,
   onBlocksChange,
   onActiveBlockChange,
   onAnalyzeParagraph,
@@ -152,6 +156,8 @@ export function ParagraphEditor({
               isActive={activeBlockId === block.id}
               isWriting={isWriting}
               isAnalyzing={analyzingParagraphId === block.id}
+              focusSummary={focusSummary}
+              preferencesLoading={preferencesLoading}
               onTextChange={updateParagraph}
               onSelect={onActiveBlockChange}
               onAnalyze={onAnalyzeParagraph}

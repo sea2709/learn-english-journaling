@@ -199,7 +199,7 @@ create policy "Users can delete own entry images"
 -- Per-user AI check preferences (focus areas + optional learning goal)
 create table if not exists public.user_preferences (
   user_id uuid primary key references auth.users (id) on delete cascade,
-  analysis_preferences jsonb not null default '{"focusAreas":["grammar","tone","word-choice","naturalness","punctuation"]}',
+  analysis_preferences jsonb not null default '{"focusAreas":["grammar","spelling","tone","word-choice","naturalness","punctuation"]}',
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );

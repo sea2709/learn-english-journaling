@@ -13,6 +13,7 @@ const FOCUS_BULLETS: Record<
   string
 > = {
   grammar: "Grammar errors and fixes",
+  spelling: "Spelling — misspelled words, typos, and incorrect letter order",
   tone: "Tone (formal, casual, neutral, or mixed)",
   "word-choice": "Word choice — suggest more natural or precise alternatives",
   naturalness: "Naturalness — phrases that sound translated or awkward",
@@ -28,6 +29,7 @@ const analysisSchema = z.object({
     z.object({
       category: z.enum([
         "grammar",
+        "spelling",
         "tone",
         "word-choice",
         "naturalness",
@@ -222,6 +224,12 @@ export function getMockAnalysis(
         original: "sample phrase",
         suggestion: "polished phrase",
         explanation: "Demo suggestion for grammar-focused feedback.",
+      },
+      {
+        category: "spelling",
+        original: "recieve",
+        suggestion: "receive",
+        explanation: "Demo suggestion for spelling-focused feedback.",
       },
       {
         category: "word-choice",

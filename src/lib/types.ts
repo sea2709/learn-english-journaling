@@ -1,5 +1,6 @@
 export type SuggestionCategory =
   | "grammar"
+  | "spelling"
   | "tone"
   | "word-choice"
   | "naturalness"

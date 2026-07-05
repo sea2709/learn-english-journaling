@@ -505,11 +505,6 @@ export function JournalApp({ user }: { user: User }) {
           <div className="mt-3 flex justify-center" aria-hidden>
             <span className="block h-0.5 w-10 rounded-full bg-pen sm:w-12" />
           </div>
-          {!preferencesLoading && (
-            <p className="mt-3 text-center font-sans text-xs text-ink-500">
-              Check focus: {focusSummary}
-            </p>
-          )}
         </div>
 
         <ParagraphEditor
@@ -518,6 +513,8 @@ export function JournalApp({ user }: { user: User }) {
           analyzingParagraphId={analyzingParagraphId}
           userId={user.id}
           entryId={entryId}
+          focusSummary={focusSummary}
+          preferencesLoading={preferencesLoading}
           onBlocksChange={handleBlocksChange}
           onActiveBlockChange={setActiveBlockId}
           onAnalyzeParagraph={handleAnalyzeParagraph}

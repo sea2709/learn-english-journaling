@@ -5,11 +5,13 @@ Learn English through daily journaling. Write paragraph by paragraph, get AI fee
 ## Features
 
 - **Paragraph-by-paragraph writing** — build a journal entry over time, one paragraph at a time
-- **Per-paragraph AI feedback** — press `Ctrl+Enter` (or click Check) to analyze only the current paragraph
-- **Grammar score, tone, polished version, and categorized suggestions**
-- **Past entries sidebar** — browse and reload saved journal entries
+- **Per-paragraph AI feedback** — press `Ctrl+Enter` (or click Check) to analyze only the current paragraph; suggestions appear inline under each block
+- **Full-entry review** — open the Feedback drawer for a holistic grammar score, tone, polished version, and suggestions across the whole entry
+- **Auto-save** — entries save automatically every 10 seconds; click Save for an immediate write
+- **Past entries drawer** — browse entries grouped by month, reload, or delete
 - **User accounts** — sign in with Google, Facebook, or email via Supabase Auth
 - **Swappable AI providers** — Gemini by default, switch models via env vars
+- **Admin dashboard** — optional `/admin` page for signup and activity stats (requires `ADMIN_EMAILS` + service role key)
 
 ## Quick start
 
@@ -27,7 +29,7 @@ Learn English through daily journaling. Write paragraph by paragraph, get AI fee
 cp .env.example .env.local
 ```
 
-Fill in your Supabase URL, anon key, and (optionally) an AI API key.
+Fill in your Supabase URL, anon key, and (optionally) an AI API key. For the admin dashboard, also set `SUPABASE_SERVICE_ROLE_KEY` and `ADMIN_EMAILS`.
 
 ### 3. Install and run
 
@@ -81,10 +83,11 @@ Without an API key, the app runs in demo mode with sample analysis responses.
 
 1. Register or sign in
 2. Write a paragraph in the editor
-3. Press **Ctrl+Enter** (or click **Check**) to get AI feedback on that paragraph only
+3. Press **Ctrl+Enter** (or click **Check**) to get AI feedback on that paragraph — suggestions appear inline below the block
 4. Press **Enter** to add another paragraph, or **Add image** to insert a photo between blocks
-5. Click **Save** when you're done
-6. Past entries appear in the Entries drawer
+5. Open **Feedback** in the topbar for a full-entry review
+6. Entries auto-save every 10 seconds; use **Save** for an immediate write
+7. Open **Entries** in the topbar to browse, reload, or delete past entries
 
 ## Data model
 
@@ -101,9 +104,14 @@ Row Level Security policies enforce that `user_id = auth.uid()` on all journal t
 
 | Area | Purpose |
 |------|---------|
-| Left sidebar | Saved journal entries |
-| Center | Title + paragraph blocks |
-| Right panel | AI feedback for the active paragraph |
+| Topbar | Entries drawer, Feedback drawer, save status, sign out |
+| Center | Title + paragraph blocks with inline per-paragraph notes |
+| Left drawer | Saved journal entries grouped by month |
+| Right drawer | Full-entry AI review |
+
+## Admin dashboard
+
+Set `ADMIN_EMAILS` (comma-separated) and `SUPABASE_SERVICE_ROLE_KEY` in `.env.local`, then visit `/admin` while signed in with an allowed email. The dashboard shows signup and activity stats plus a searchable user table.
 
 ## Technical reference (for AI agents)
 

@@ -85,13 +85,6 @@ export function toListItem(entry: StoredJournalEntry): JournalEntryListItem {
   };
 }
 
-export function getTotalWordCount(blocks: EntryBlock[]): number {
-  return getTextBlocks(blocks).reduce((total, p) => {
-    const words = p.text.trim() ? p.text.trim().split(/\s+/).length : 0;
-    return total + words;
-  }, 0);
-}
-
 export function hasAnalyzableContent(blocks: EntryBlock[]): boolean {
   return getTextBlocks(blocks).some((p) => p.text.trim().length > 0);
 }

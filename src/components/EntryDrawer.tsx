@@ -132,16 +132,34 @@ export function EntryDrawer({
           <button
             type="button"
             onClick={onNewEntry}
-            className="flex-1 rounded border border-paper-line bg-white/50 px-3 py-2 text-sm font-medium text-ink-700 transition hover:bg-white"
+            className="feedback-btn flex-1 justify-center"
           >
+            <span className="pen" aria-hidden>
+              +
+            </span>
             New entry
           </button>
           <button
             type="button"
             onClick={onRefresh}
             disabled={loading}
-            className="rounded px-3 py-2 text-sm text-ink-500 transition hover:bg-paper-dark hover:text-ink-700 disabled:opacity-50"
+            className="feedback-btn"
           >
+            <span className="pen" aria-hidden>
+              <svg
+                className="h-3.5 w-3.5"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                strokeWidth={2}
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182m0-4.991v4.99"
+                />
+              </svg>
+            </span>
             Refresh
           </button>
         </div>

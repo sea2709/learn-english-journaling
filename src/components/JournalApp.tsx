@@ -423,7 +423,6 @@ export function JournalApp({ user }: { user: User }) {
       <header className="topbar">
         <div className="topbar-left">
           <div className="brand">
-            <span className="dot" aria-hidden />
             <h1>English Journal</h1>
           </div>
           <button

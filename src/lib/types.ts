@@ -94,3 +94,36 @@ export interface AdminUsersResponse {
 
 export type AdminUserSort = "created_at" | "last_sign_in_at" | "email";
 export type AdminUserSortOrder = "asc" | "desc";
+
+export type FeedbackCategory = "bug" | "idea" | "other";
+export type FeedbackStatus = "new" | "read" | "archived";
+
+export interface UserFeedbackSubmission {
+  category: FeedbackCategory;
+  message: string;
+  contactNote?: string;
+}
+
+export interface AdminFeedbackRow {
+  id: string;
+  userId: string;
+  userEmail: string;
+  category: FeedbackCategory;
+  message: string;
+  contactNote: string | null;
+  status: FeedbackStatus;
+  internalNotes: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface AdminFeedbackResponse {
+  feedback: AdminFeedbackRow[];
+  total: number;
+  page: number;
+  perPage: number;
+  newCount: number;
+}
+
+export type AdminFeedbackSort = "created_at" | "status" | "category";
+export type AdminFeedbackSortOrder = "asc" | "desc";

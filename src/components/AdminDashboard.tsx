@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import { ApiError, fetchAdminStats, fetchAdminUsers } from "@/lib/api";
 import type { AdminStats, AdminUserRow, AdminUserSort } from "@/lib/types";
+import { AdminFeedbackSection } from "./AdminFeedbackSection";
 
 type SortOrder = "asc" | "desc";
 
@@ -300,6 +301,8 @@ export function AdminDashboard() {
             ) : null}
           </div>
         </section>
+
+        <AdminFeedbackSection />
       </main>
     </div>
   );

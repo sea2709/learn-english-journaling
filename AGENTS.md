@@ -190,6 +190,7 @@ auth.users
  ├── journal_entries (id, user_id, title, date, status, created_at, updated_at)
  │    └── journal_paragraphs (id, entry_id, order, block_type, text, analyzed_text, analysis jsonb, image_path)
  └── user_preferences (user_id, analysis_preferences jsonb, created_at, updated_at)
+ └── user_feedback (id, user_id, user_email, category, message, contact_note, status, internal_notes, created_at, updated_at)
 storage.buckets entry-images  # private; path {user_id}/{entry_id}/{image_id}.ext
 ```
 
@@ -217,6 +218,11 @@ RLS: all policies enforce `user_id = auth.uid()` (entries, preferences) or entry
 | `AdminStats` | User signup and activity counts |
 | `AdminUserRow` | One row in admin user table |
 | `AdminUsersResponse` | Paginated user list + total count |
+| `FeedbackCategory` | User feedback type: `bug`, `idea`, `other` |
+| `FeedbackStatus` | Admin workflow: `new`, `read`, `archived` |
+| `UserFeedbackSubmission` | Client payload: category, message, optional contactNote |
+| `AdminFeedbackRow` | Full feedback row for admin list/detail |
+| `AdminFeedbackResponse` | Paginated feedback list + newCount |
 
 ### Paragraph staleness
 
@@ -240,8 +246,11 @@ Scores are stored 0–100 in the DB and AI schema. `ScoreRing.scoreToDisplay()` 
 | `DELETE` | `/api/entries/:id` | Yes | → `{ success: true }` |
 | `GET` | `/api/admin/stats` | Admin | → `AdminStats` |
 | `GET` | `/api/admin/users` | Admin | `?page&limit&sort&order` → `AdminUsersResponse` |
+| `POST` | `/api/feedback` | Yes | `{ category, message, contactNote? }` → `{ success: true }` |
+| `GET` | `/api/admin/feedback` | Admin | `?page&perPage&status&sort&order` → `AdminFeedbackResponse` |
+| `PATCH` | `/api/admin/feedback/:id` | Admin | `{ status?, internalNotes? }` → `{ feedback: AdminFeedbackRow }` |
 
-Client wrappers in `lib/api.ts`: `analyzeText`, `analyzeEntryReview`, `fetchPreferences`, `savePreferences`, `listEntries`, `fetchEntry`, `saveEntry`, `deleteEntry`, `fetchAdminStats`, `fetchAdminUsers`.
+Client wrappers in `lib/api.ts`: `analyzeText`, `analyzeEntryReview`, `fetchPreferences`, `savePreferences`, `listEntries`, `fetchEntry`, `saveEntry`, `deleteEntry`, `fetchAdminStats`, `fetchAdminUsers`, `submitFeedback`, `fetchAdminFeedback`, `updateAdminFeedback`.
 
 Errors return `{ error: string }` with 4xx/5xx. Client code throws `ApiError` from `lib/api.ts`.
 

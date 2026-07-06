@@ -147,13 +147,21 @@ export function TopActionsMenu({
     }
 
     setCompact(shouldCompact);
-  }, []);
+    if (!shouldCompact) {
+      setMenuOpen(false);
+      onMenuOpenChange?.(false);
+    }
+  }, [onMenuOpenChange]);
 
   useLayoutEffect(() => {
-    checkCompact();
+    const frame = requestAnimationFrame(() => {
+      checkCompact();
+    });
 
     const topbar = containerRef.current?.closest("header.topbar");
-    if (!topbar) return;
+    if (!topbar) {
+      return () => cancelAnimationFrame(frame);
+    }
 
     const mq = window.matchMedia("(max-width: 639px)");
     const onMqChange = () => checkCompact();
@@ -166,14 +174,11 @@ export function TopActionsMenu({
     if (measureRef.current) ro.observe(measureRef.current);
 
     return () => {
+      cancelAnimationFrame(frame);
       mq.removeEventListener("change", onMqChange);
       ro.disconnect();
     };
   }, [checkCompact]);
-
-  useEffect(() => {
-    if (!compact) setOpen(false);
-  }, [compact, setOpen]);
 
   useEffect(() => {
     if (!menuOpen) return;

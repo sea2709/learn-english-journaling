@@ -16,38 +16,22 @@ interface CheckFocusSettingsProps {
   onSave: (preferences: AnalysisPreferences) => void;
 }
 
-export function CheckFocusSettings({
-  open,
+function preferencesKey(preferences: AnalysisPreferences) {
+  return `${preferences.focusAreas.join(",")}|${preferences.customNote ?? ""}`;
+}
+
+function CheckFocusSettingsPanel({
   preferences,
   saving,
   error,
   onClose,
   onSave,
-}: CheckFocusSettingsProps) {
+}: Omit<CheckFocusSettingsProps, "open">) {
   const [focusAreas, setFocusAreas] = useState<AnalysisFocusArea[]>(
     preferences.focusAreas
   );
   const [customNote, setCustomNote] = useState(preferences.customNote ?? "");
   const [validationError, setValidationError] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (!open) return;
-
-    setFocusAreas(preferences.focusAreas);
-    setCustomNote(preferences.customNote ?? "");
-    setValidationError(null);
-  }, [open, preferences]);
-
-  useEffect(() => {
-    if (!open) return;
-
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
-    };
-
-    document.addEventListener("keydown", handleKeyDown);
-    return () => document.removeEventListener("keydown", handleKeyDown);
-  }, [open, onClose]);
 
   const toggleFocusArea = (area: AnalysisFocusArea) => {
     setFocusAreas((current) => {
@@ -70,8 +54,6 @@ export function CheckFocusSettings({
       customNote: customNote.trim() || undefined,
     });
   };
-
-  if (!open) return null;
 
   return (
     <>
@@ -180,5 +162,38 @@ export function CheckFocusSettings({
         </footer>
       </aside>
     </>
+  );
+}
+
+export function CheckFocusSettings({
+  open,
+  preferences,
+  saving,
+  error,
+  onClose,
+  onSave,
+}: CheckFocusSettingsProps) {
+  useEffect(() => {
+    if (!open) return;
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
+
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, [open, onClose]);
+
+  if (!open) return null;
+
+  return (
+    <CheckFocusSettingsPanel
+      key={preferencesKey(preferences)}
+      preferences={preferences}
+      saving={saving}
+      error={error}
+      onClose={onClose}
+      onSave={onSave}
+    />
   );
 }

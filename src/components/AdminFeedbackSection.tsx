@@ -1,6 +1,6 @@
 "use client";
 
-import { Fragment, useCallback, useEffect, useState } from "react";
+import { Fragment, useEffect, useState } from "react";
 import {
   ApiError,
   fetchAdminFeedback,
@@ -84,11 +84,6 @@ function FeedbackDetailPanel({
 }) {
   const [status, setStatus] = useState<FeedbackStatus>(row.status);
   const [internalNotes, setInternalNotes] = useState(row.internalNotes ?? "");
-
-  useEffect(() => {
-    setStatus(row.status);
-    setInternalNotes(row.internalNotes ?? "");
-  }, [row]);
 
   return (
     <div className="border-t border-paper-line bg-paper-dark/30 px-4 py-4">
@@ -192,38 +187,47 @@ export function AdminFeedbackSection() {
   const [savingId, setSavingId] = useState<string | null>(null);
   const [saveError, setSaveError] = useState<string | null>(null);
 
-  const loadFeedback = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-
-    try {
-      const response = await fetchAdminFeedback({
-        page,
-        perPage,
-        status: statusFilter === "all" ? undefined : statusFilter,
-        sort,
-        order,
-      });
-
-      setFeedback(response.feedback);
-      setTotal(response.total);
-      setNewCount(response.newCount);
-    } catch (err) {
-      const message =
-        err instanceof ApiError ? err.message : "Failed to load feedback.";
-      setError(message);
-    } finally {
-      setLoading(false);
-    }
-  }, [order, page, perPage, sort, statusFilter]);
-
   useEffect(() => {
-    void loadFeedback();
-  }, [loadFeedback]);
+    let cancelled = false;
+
+    void (async () => {
+      try {
+        const response = await fetchAdminFeedback({
+          page,
+          perPage,
+          status: statusFilter === "all" ? undefined : statusFilter,
+          sort,
+          order,
+        });
+
+        if (!cancelled) {
+          setFeedback(response.feedback);
+          setTotal(response.total);
+          setNewCount(response.newCount);
+          setError(null);
+        }
+      } catch (err) {
+        if (!cancelled) {
+          const message =
+            err instanceof ApiError ? err.message : "Failed to load feedback.";
+          setError(message);
+        }
+      } finally {
+        if (!cancelled) {
+          setLoading(false);
+        }
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [order, page, perPage, sort, statusFilter]);
 
   const totalPages = Math.max(1, Math.ceil(total / perPage));
 
   function handleSort(nextSort: AdminFeedbackSort) {
+    setLoading(true);
     if (sort === nextSort) {
       setOrder((current) => (current === "asc" ? "desc" : "asc"));
     } else {
@@ -280,6 +284,7 @@ export function AdminFeedbackSection() {
               key={value}
               type="button"
               onClick={() => {
+                setLoading(true);
                 setStatusFilter(value);
                 setPage(1);
                 setExpandedId(null);
@@ -396,6 +401,7 @@ export function AdminFeedbackSection() {
                         <tr>
                           <td colSpan={5} className="p-0">
                             <FeedbackDetailPanel
+                              key={`${row.id}-${row.updatedAt}`}
                               row={row}
                               saving={savingId === row.id}
                               error={saveError}
@@ -420,7 +426,10 @@ export function AdminFeedbackSection() {
             <div className="flex gap-2">
               <button
                 type="button"
-                onClick={() => setPage((current) => Math.max(1, current - 1))}
+                onClick={() => {
+                  setLoading(true);
+                  setPage((current) => Math.max(1, current - 1));
+                }}
                 disabled={page <= 1 || loading}
                 className="rounded border border-paper-line px-3 py-1.5 text-xs text-ink-700 transition hover:bg-paper-dark disabled:cursor-not-allowed disabled:opacity-50"
               >
@@ -428,9 +437,10 @@ export function AdminFeedbackSection() {
               </button>
               <button
                 type="button"
-                onClick={() =>
-                  setPage((current) => Math.min(totalPages, current + 1))
-                }
+                onClick={() => {
+                  setLoading(true);
+                  setPage((current) => Math.min(totalPages, current + 1));
+                }}
                 disabled={page >= totalPages || loading}
                 className="rounded border border-paper-line px-3 py-1.5 text-xs text-ink-700 transition hover:bg-paper-dark disabled:cursor-not-allowed disabled:opacity-50"
               >

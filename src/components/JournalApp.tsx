@@ -60,7 +60,7 @@ function countInlineNotes(blocks: EntryBlock[]): number {
 
 export function JournalApp({ user }: { user: User }) {
   const [title, setTitle] = useState(() => formatTodayDisplay());
-  const [blocks, setBlocks] = useState<EntryBlock[]>([createParagraph()]);
+  const [blocks, setBlocks] = useState<EntryBlock[]>(() => [createParagraph()]);
   const [activeBlockId, setActiveBlockId] = useState<string | null>(null);
   const [analyzingParagraphId, setAnalyzingParagraphId] = useState<
     string | null
@@ -113,6 +113,8 @@ export function JournalApp({ user }: { user: User }) {
     [blocks]
   );
 
+  const resolvedActiveBlockId = activeBlockId ?? blocks[0]?.id ?? null;
+
   const { saveStatus, isDirty, saveNow, flush, markSaved } = useAutoSaveEntry({
     entryId,
     title,
@@ -145,15 +147,38 @@ export function JournalApp({ user }: { user: User }) {
   }, []);
 
   useEffect(() => {
-    refreshEntries();
-    setActiveBlockId((prev) => prev ?? blocks[0]?.id ?? null);
-  }, [refreshEntries]);
+    let cancelled = false;
+
+    void (async () => {
+      try {
+        const nextEntries = await listEntries();
+        if (!cancelled) {
+          setEntries(nextEntries);
+        }
+      } catch (error) {
+        if (!cancelled) {
+          const text =
+            error instanceof ApiError
+              ? error.message
+              : "Failed to load saved entries.";
+          setMessage({ type: "error", text });
+        }
+      } finally {
+        if (!cancelled) {
+          setEntriesLoading(false);
+        }
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
 
-    const loadPreferences = async () => {
-      setPreferencesLoading(true);
+    void (async () => {
       try {
         const preferences = await fetchPreferences();
         if (!cancelled) {
@@ -172,9 +197,7 @@ export function JournalApp({ user }: { user: User }) {
           setPreferencesLoading(false);
         }
       }
-    };
-
-    void loadPreferences();
+    })();
 
     return () => {
       cancelled = true;
@@ -194,18 +217,51 @@ export function JournalApp({ user }: { user: User }) {
 
   useEffect(() => {
     if (!entriesOpen || !entriesStale) return;
-    void refreshEntries().then(() => setEntriesStale(false));
-  }, [entriesOpen, entriesStale, refreshEntries]);
+
+    let cancelled = false;
+
+    void listEntries()
+      .then((nextEntries) => {
+        if (!cancelled) {
+          setEntries(nextEntries);
+          setEntriesStale(false);
+        }
+      })
+      .catch((error) => {
+        if (!cancelled) {
+          const text =
+            error instanceof ApiError
+              ? error.message
+              : "Failed to load saved entries.";
+          setMessage({ type: "error", text });
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [entriesOpen, entriesStale]);
 
   useEffect(() => {
     if (!entriesStale) return;
 
     const timer = setTimeout(() => {
-      void refreshEntries().then(() => setEntriesStale(false));
+      void listEntries()
+        .then((nextEntries) => {
+          setEntries(nextEntries);
+          setEntriesStale(false);
+        })
+        .catch((error) => {
+          const text =
+            error instanceof ApiError
+              ? error.message
+              : "Failed to load saved entries.";
+          setMessage({ type: "error", text });
+        });
     }, 30_000);
 
     return () => clearTimeout(timer);
-  }, [entriesStale, refreshEntries]);
+  }, [entriesStale]);
 
   const handleBlocksChange = (next: EntryBlock[]) => {
     setBlocks(next);
@@ -502,7 +558,7 @@ export function JournalApp({ user }: { user: User }) {
 
         <ParagraphEditor
           blocks={blocks}
-          activeBlockId={activeBlockId}
+          activeBlockId={resolvedActiveBlockId}
           analyzingParagraphId={analyzingParagraphId}
           userId={user.id}
           entryId={entryId}

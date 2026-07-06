@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { groupEntriesByMonth } from "@/lib/entry-utils";
 import type { JournalEntryListItem } from "@/lib/types";
 import { scoreToDisplay } from "./ScoreRing";
@@ -72,20 +72,21 @@ export function EntryDrawer({
     });
   };
 
+  const closeDrawer = useCallback(() => {
+    setConfirmDeleteId(null);
+    onClose();
+  }, [onClose]);
+
   useEffect(() => {
     if (!open) return;
 
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
+      if (e.key === "Escape") closeDrawer();
     };
 
     document.addEventListener("keydown", handleKeyDown);
     return () => document.removeEventListener("keydown", handleKeyDown);
-  }, [open, onClose]);
-
-  useEffect(() => {
-    if (!open) setConfirmDeleteId(null);
-  }, [open]);
+  }, [open, closeDrawer]);
 
   if (!open) return null;
 
@@ -93,7 +94,7 @@ export function EntryDrawer({
     <>
       <div
         className="fixed inset-0 z-40 animate-fade-in bg-ink-950/25"
-        onClick={onClose}
+        onClick={closeDrawer}
         aria-hidden
       />
       <aside
@@ -107,7 +108,7 @@ export function EntryDrawer({
           </h2>
           <button
             type="button"
-            onClick={onClose}
+            onClick={closeDrawer}
             className="flex min-h-11 min-w-11 items-center justify-center rounded p-1.5 text-ink-500 transition hover:bg-paper-dark hover:text-ink-800 sm:min-h-0 sm:min-w-0"
             aria-label="Close entries"
           >
@@ -229,7 +230,7 @@ export function EntryDrawer({
                                 type="button"
                                 onClick={() => {
                                   onSelect(entry);
-                                  onClose();
+                                  closeDrawer();
                                 }}
                                 className="min-w-0 flex-1 rounded-lg px-3 py-3 text-left"
                               >

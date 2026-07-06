@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { SocialAuthButtons } from "./SocialAuthButtons";
@@ -16,17 +16,17 @@ export function AuthForm() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [formError, setFormError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
 
-  useEffect(() => {
-    if (searchParams.get("error") === "auth") {
-      setError("Sign in was cancelled or failed. Please try again.");
-    }
-  }, [searchParams]);
+  const urlAuthError =
+    searchParams.get("error") === "auth"
+      ? "Sign in was cancelled or failed. Please try again."
+      : null;
+  const error = formError ?? urlAuthError;
 
   const resetMessages = () => {
-    setError(null);
+    setFormError(null);
     setMessage(null);
   };
 
@@ -56,7 +56,7 @@ export function AuthForm() {
         });
 
         if (signUpError) {
-          setError(signUpError.message);
+          setFormError(signUpError.message);
           return;
         }
 
@@ -77,11 +77,11 @@ export function AuthForm() {
         });
 
         if (signInError) {
-          setError("Invalid email or password.");
+          setFormError("Invalid email or password.");
         }
       }
     } catch {
-      setError("Something went wrong.");
+      setFormError("Something went wrong.");
     } finally {
       setLoading(false);
     }

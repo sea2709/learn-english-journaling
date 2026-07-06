@@ -16,38 +16,17 @@ interface FeedbackFormProps {
   onSubmit: (payload: UserFeedbackSubmission) => void;
 }
 
-export function FeedbackForm({
-  open,
+function FeedbackFormPanel({
   submitting,
   error,
   successMessage,
   onClose,
   onSubmit,
-}: FeedbackFormProps) {
+}: Omit<FeedbackFormProps, "open">) {
   const [category, setCategory] = useState<FeedbackCategory>("idea");
   const [message, setMessage] = useState("");
   const [contactNote, setContactNote] = useState("");
   const [validationError, setValidationError] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (!open || successMessage) return;
-
-    setCategory("idea");
-    setMessage("");
-    setContactNote("");
-    setValidationError(null);
-  }, [open, successMessage]);
-
-  useEffect(() => {
-    if (!open) return;
-
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
-    };
-
-    document.addEventListener("keydown", handleKeyDown);
-    return () => document.removeEventListener("keydown", handleKeyDown);
-  }, [open, onClose]);
 
   const handleSubmit = () => {
     const trimmedMessage = message.trim();
@@ -75,8 +54,6 @@ export function FeedbackForm({
       contactNote: trimmedContact || undefined,
     });
   };
-
-  if (!open) return null;
 
   return (
     <>
@@ -124,86 +101,86 @@ export function FeedbackForm({
             </div>
           ) : (
             <>
-          <p className="text-sm leading-relaxed text-ink-600">
-            Tell us about a bug, share an idea, or let us know how the app is
-            working for you.
-          </p>
+              <p className="text-sm leading-relaxed text-ink-600">
+                Tell us about a bug, share an idea, or let us know how the app is
+                working for you.
+              </p>
 
-          <fieldset className="mt-6 space-y-2">
-            <legend className="mb-2 text-[11px] font-medium uppercase tracking-wide text-ink-500">
-              Category
-            </legend>
-            <div className="flex flex-wrap gap-2">
-              {ALL_FEEDBACK_CATEGORIES.map((value) => (
-                <button
-                  key={value}
-                  type="button"
-                  onClick={() => setCategory(value)}
-                  className={`rounded-full border px-3 py-1.5 text-sm font-medium transition ${
-                    category === value
-                      ? "border-pen bg-pen/10 text-ink-900"
-                      : "border-paper-line text-ink-700 hover:bg-paper-dark/60"
-                  }`}
+              <fieldset className="mt-6 space-y-2">
+                <legend className="mb-2 text-[11px] font-medium uppercase tracking-wide text-ink-500">
+                  Category
+                </legend>
+                <div className="flex flex-wrap gap-2">
+                  {ALL_FEEDBACK_CATEGORIES.map((value) => (
+                    <button
+                      key={value}
+                      type="button"
+                      onClick={() => setCategory(value)}
+                      className={`rounded-full border px-3 py-1.5 text-sm font-medium transition ${
+                        category === value
+                          ? "border-pen bg-pen/10 text-ink-900"
+                          : "border-paper-line text-ink-700 hover:bg-paper-dark/60"
+                      }`}
+                    >
+                      {FEEDBACK_CATEGORY_LABELS[value]}
+                    </button>
+                  ))}
+                </div>
+              </fieldset>
+
+              <div className="mt-6">
+                <label
+                  htmlFor="feedback-message"
+                  className="mb-2 block text-[11px] font-medium uppercase tracking-wide text-ink-500"
                 >
-                  {FEEDBACK_CATEGORY_LABELS[value]}
-                </button>
-              ))}
-            </div>
-          </fieldset>
+                  Message
+                </label>
+                <textarea
+                  id="feedback-message"
+                  value={message}
+                  onChange={(e) => {
+                    setMessage(e.target.value);
+                    setValidationError(null);
+                  }}
+                  rows={6}
+                  maxLength={2000}
+                  placeholder="Describe your feedback…"
+                  className="w-full resize-none rounded border border-paper-line bg-white/80 px-3 py-2 font-sans text-sm text-ink-800 placeholder:text-ink-400 focus:border-pen/40 focus:outline-none focus:ring-2 focus:ring-pen/20"
+                />
+                <p className="mt-1 text-right text-[11px] text-ink-400">
+                  {message.length}/2000
+                </p>
+              </div>
 
-          <div className="mt-6">
-            <label
-              htmlFor="feedback-message"
-              className="mb-2 block text-[11px] font-medium uppercase tracking-wide text-ink-500"
-            >
-              Message
-            </label>
-            <textarea
-              id="feedback-message"
-              value={message}
-              onChange={(e) => {
-                setMessage(e.target.value);
-                setValidationError(null);
-              }}
-              rows={6}
-              maxLength={2000}
-              placeholder="Describe your feedback…"
-              className="w-full resize-none rounded border border-paper-line bg-white/80 px-3 py-2 font-sans text-sm text-ink-800 placeholder:text-ink-400 focus:border-pen/40 focus:outline-none focus:ring-2 focus:ring-pen/20"
-            />
-            <p className="mt-1 text-right text-[11px] text-ink-400">
-              {message.length}/2000
-            </p>
-          </div>
+              <div className="mt-4">
+                <label
+                  htmlFor="feedback-contact"
+                  className="mb-2 block text-[11px] font-medium uppercase tracking-wide text-ink-500"
+                >
+                  Contact note (optional)
+                </label>
+                <textarea
+                  id="feedback-contact"
+                  value={contactNote}
+                  onChange={(e) => {
+                    setContactNote(e.target.value);
+                    setValidationError(null);
+                  }}
+                  rows={2}
+                  maxLength={300}
+                  placeholder='Optional — add an email or extra context if you would like a reply'
+                  className="w-full resize-none rounded border border-paper-line bg-white/80 px-3 py-2 font-sans text-sm text-ink-800 placeholder:text-ink-400 focus:border-pen/40 focus:outline-none focus:ring-2 focus:ring-pen/20"
+                />
+                <p className="mt-1 text-right text-[11px] text-ink-400">
+                  {contactNote.length}/300
+                </p>
+              </div>
 
-          <div className="mt-4">
-            <label
-              htmlFor="feedback-contact"
-              className="mb-2 block text-[11px] font-medium uppercase tracking-wide text-ink-500"
-            >
-              Contact note (optional)
-            </label>
-            <textarea
-              id="feedback-contact"
-              value={contactNote}
-              onChange={(e) => {
-                setContactNote(e.target.value);
-                setValidationError(null);
-              }}
-              rows={2}
-              maxLength={300}
-              placeholder='Optional — add an email or extra context if you would like a reply'
-              className="w-full resize-none rounded border border-paper-line bg-white/80 px-3 py-2 font-sans text-sm text-ink-800 placeholder:text-ink-400 focus:border-pen/40 focus:outline-none focus:ring-2 focus:ring-pen/20"
-            />
-            <p className="mt-1 text-right text-[11px] text-ink-400">
-              {contactNote.length}/300
-            </p>
-          </div>
-
-          {(validationError || error) && (
-            <p className="mt-4 rounded bg-coral-100/60 px-3 py-2 text-sm text-coral-800">
-              {validationError ?? error}
-            </p>
-          )}
+              {(validationError || error) && (
+                <p className="mt-4 rounded bg-coral-100/60 px-3 py-2 text-sm text-coral-800">
+                  {validationError ?? error}
+                </p>
+              )}
             </>
           )}
         </div>
@@ -230,5 +207,37 @@ export function FeedbackForm({
         </footer>
       </aside>
     </>
+  );
+}
+
+export function FeedbackForm({
+  open,
+  submitting,
+  error,
+  successMessage,
+  onClose,
+  onSubmit,
+}: FeedbackFormProps) {
+  useEffect(() => {
+    if (!open) return;
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
+
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, [open, onClose]);
+
+  if (!open) return null;
+
+  return (
+    <FeedbackFormPanel
+      submitting={submitting}
+      error={error}
+      successMessage={successMessage}
+      onClose={onClose}
+      onSubmit={onSubmit}
+    />
   );
 }

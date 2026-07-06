@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { ApiError, fetchAdminStats, fetchAdminUsers } from "@/lib/api";
 import type { AdminStats, AdminUserRow, AdminUserSort } from "@/lib/types";
 import { AdminFeedbackSection } from "./AdminFeedbackSection";
@@ -95,35 +95,46 @@ export function AdminDashboard() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const loadDashboard = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-
-    try {
-      const [nextStats, usersResponse] = await Promise.all([
-        fetchAdminStats(),
-        fetchAdminUsers({ page, perPage, sort, order }),
-      ]);
-
-      setStats(nextStats);
-      setUsers(usersResponse.users);
-      setTotalUsers(usersResponse.total);
-    } catch (err) {
-      const message =
-        err instanceof ApiError ? err.message : "Failed to load admin dashboard.";
-      setError(message);
-    } finally {
-      setLoading(false);
-    }
-  }, [order, page, perPage, sort]);
-
   useEffect(() => {
-    void loadDashboard();
-  }, [loadDashboard]);
+    let cancelled = false;
+
+    void (async () => {
+      try {
+        const [nextStats, usersResponse] = await Promise.all([
+          fetchAdminStats(),
+          fetchAdminUsers({ page, perPage, sort, order }),
+        ]);
+
+        if (!cancelled) {
+          setStats(nextStats);
+          setUsers(usersResponse.users);
+          setTotalUsers(usersResponse.total);
+          setError(null);
+        }
+      } catch (err) {
+        if (!cancelled) {
+          const message =
+            err instanceof ApiError
+              ? err.message
+              : "Failed to load admin dashboard.";
+          setError(message);
+        }
+      } finally {
+        if (!cancelled) {
+          setLoading(false);
+        }
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [order, page, perPage, sort]);
 
   const totalPages = Math.max(1, Math.ceil(totalUsers / perPage));
 
   function handleSort(nextSort: AdminUserSort) {
+    setLoading(true);
     if (sort === nextSort) {
       setOrder((current) => (current === "asc" ? "desc" : "asc"));
     } else {
@@ -280,7 +291,10 @@ export function AdminDashboard() {
                 <div className="flex gap-2">
                   <button
                     type="button"
-                    onClick={() => setPage((current) => Math.max(1, current - 1))}
+                    onClick={() => {
+                      setLoading(true);
+                      setPage((current) => Math.max(1, current - 1));
+                    }}
                     disabled={page <= 1 || loading}
                     className="rounded border border-paper-line px-3 py-1.5 text-xs text-ink-700 transition hover:bg-paper-dark disabled:cursor-not-allowed disabled:opacity-50"
                   >
@@ -288,9 +302,10 @@ export function AdminDashboard() {
                   </button>
                   <button
                     type="button"
-                    onClick={() =>
-                      setPage((current) => Math.min(totalPages, current + 1))
-                    }
+                    onClick={() => {
+                      setLoading(true);
+                      setPage((current) => Math.min(totalPages, current + 1));
+                    }}
                     disabled={page >= totalPages || loading}
                     className="rounded border border-paper-line px-3 py-1.5 text-xs text-ink-700 transition hover:bg-paper-dark disabled:cursor-not-allowed disabled:opacity-50"
                   >

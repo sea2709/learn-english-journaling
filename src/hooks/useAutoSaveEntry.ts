@@ -49,28 +49,35 @@ export function useAutoSaveEntry({
   onSaved,
 }: UseAutoSaveEntryOptions) {
   const [saveStatus, setSaveStatus] = useState<SaveStatus>("idle");
+  const [lastSavedSnapshot, setLastSavedSnapshot] = useState<string | null>(
+    null
+  );
   const lastSavedSnapshotRef = useRef<string | null>(null);
   const debounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const savingRef = useRef(false);
-  const debounceMsRef = useRef(debounceMs);
-
-  debounceMsRef.current = debounceMs;
 
   const entryIdRef = useRef(entryId);
   const titleRef = useRef(title);
   const blocksRef = useRef(blocks);
   const canSaveRef = useRef(canSave);
   const onSavedRef = useRef(onSaved);
+  const debounceMsRef = useRef(debounceMs);
+  const persistEntryRef = useRef<() => Promise<SaveResult>>(async () => ({
+    ok: false,
+  }));
 
-  entryIdRef.current = entryId;
-  titleRef.current = title;
-  blocksRef.current = blocks;
-  canSaveRef.current = canSave;
-  onSavedRef.current = onSaved;
+  useEffect(() => {
+    entryIdRef.current = entryId;
+    titleRef.current = title;
+    blocksRef.current = blocks;
+    canSaveRef.current = canSave;
+    onSavedRef.current = onSaved;
+    debounceMsRef.current = debounceMs;
+    lastSavedSnapshotRef.current = lastSavedSnapshot;
+  });
 
   const currentSnapshot = serializeSnapshot(title, blocks);
-  const isDirty =
-    canSave && lastSavedSnapshotRef.current !== currentSnapshot;
+  const isDirty = canSave && lastSavedSnapshot !== currentSnapshot;
 
   const clearDebounce = useCallback(() => {
     if (debounceTimerRef.current) {
@@ -105,6 +112,7 @@ export function useAutoSaveEntry({
         buildEntry(entryIdRef.current, titleRef.current, blocksRef.current)
       );
       lastSavedSnapshotRef.current = snapshot;
+      setLastSavedSnapshot(snapshot);
       setSaveStatus("saved");
       onSavedRef.current?.(saved);
 
@@ -116,7 +124,7 @@ export function useAutoSaveEntry({
         setSaveStatus("pending");
         clearDebounce();
         debounceTimerRef.current = setTimeout(() => {
-          void persistEntry();
+          void persistEntryRef.current();
         }, debounceMsRef.current);
       }
 
@@ -130,6 +138,10 @@ export function useAutoSaveEntry({
       savingRef.current = false;
     }
   }, [clearDebounce]);
+
+  useEffect(() => {
+    persistEntryRef.current = persistEntry;
+  }, [persistEntry]);
 
   const saveNow = useCallback(async (): Promise<SaveResult> => {
     clearDebounce();
@@ -153,10 +165,9 @@ export function useAutoSaveEntry({
   const markSaved = useCallback(
     (savedTitle: string, savedBlocks: EntryBlock[]) => {
       clearDebounce();
-      lastSavedSnapshotRef.current = serializeSnapshot(
-        savedTitle,
-        savedBlocks
-      );
+      const snapshot = serializeSnapshot(savedTitle, savedBlocks);
+      lastSavedSnapshotRef.current = snapshot;
+      setLastSavedSnapshot(snapshot);
       setSaveStatus("idle");
     },
     [clearDebounce]
@@ -168,18 +179,30 @@ export function useAutoSaveEntry({
       return;
     }
 
-    if (lastSavedSnapshotRef.current === currentSnapshot) {
+    if (lastSavedSnapshot === currentSnapshot) {
       return;
     }
 
-    setSaveStatus((prev) => (prev === "saving" ? prev : "pending"));
     clearDebounce();
     debounceTimerRef.current = setTimeout(() => {
-      void persistEntry();
+      void persistEntryRef.current();
     }, debounceMs);
 
-    return clearDebounce;
-  }, [canSave, currentSnapshot, debounceMs, clearDebounce, persistEntry]);
+    const pendingTimer = setTimeout(() => {
+      setSaveStatus((prev) => (prev === "saving" ? prev : "pending"));
+    }, 0);
+
+    return () => {
+      clearDebounce();
+      clearTimeout(pendingTimer);
+    };
+  }, [
+    canSave,
+    currentSnapshot,
+    debounceMs,
+    clearDebounce,
+    lastSavedSnapshot,
+  ]);
 
   useEffect(() => {
     if (saveStatus !== "saved") return;

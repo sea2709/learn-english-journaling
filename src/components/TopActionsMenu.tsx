@@ -123,6 +123,11 @@ export function TopActionsMenu({
   );
 
   const checkCompact = useCallback(() => {
+    if (window.matchMedia("(max-width: 639px)").matches) {
+      setCompact(true);
+      return;
+    }
+
     const topbar = containerRef.current?.closest("header.topbar");
     const measure = measureRef.current;
     const container = containerRef.current;
@@ -150,13 +155,20 @@ export function TopActionsMenu({
     const topbar = containerRef.current?.closest("header.topbar");
     if (!topbar) return;
 
+    const mq = window.matchMedia("(max-width: 639px)");
+    const onMqChange = () => checkCompact();
+    mq.addEventListener("change", onMqChange);
+
     const ro = new ResizeObserver(() => checkCompact());
     ro.observe(topbar);
     const left = topbar.querySelector(".topbar-left");
     if (left) ro.observe(left);
     if (measureRef.current) ro.observe(measureRef.current);
 
-    return () => ro.disconnect();
+    return () => {
+      mq.removeEventListener("change", onMqChange);
+      ro.disconnect();
+    };
   }, [checkCompact]);
 
   useEffect(() => {

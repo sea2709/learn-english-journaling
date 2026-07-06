@@ -74,7 +74,11 @@
     display: flex;
     align-items: center;
     gap: 0.5rem;
-    min-width: 0;
+    flex-shrink: 0;
+  }
+
+  .topbar-left .feedback-btn {
+    flex-shrink: 0;
   }
 
   @media (min-width: 640px) {
@@ -214,14 +218,7 @@
 
   .brand h1 {
     @apply font-display text-base font-semibold whitespace-nowrap;
-    display: none;
     color: #54493c;
-  }
-
-  @media (min-width: 640px) {
-    .brand h1 {
-      display: block;
-    }
   }
 
   .lnk {
@@ -293,6 +290,10 @@
     display: none;
   }
 
+  .topbar-left .btn-label {
+    display: inline;
+  }
+
   @media (min-width: 640px) {
     .btn-label {
       display: inline;
@@ -303,43 +304,15 @@
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    min-width: 1rem;
-    height: 1rem;
-    padding: 0 0.25rem;
+    min-width: 1.125rem;
+    height: 1.125rem;
+    padding: 0 0.3125rem;
     border-radius: 9999px;
     background-color: #b0432e;
     font-size: 0.625rem;
-    font-weight: 500;
+    font-weight: 600;
+    line-height: 1;
     color: #fff;
-  }
-
-  .feedback-btn.alt .n {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    min-width: 1rem;
-    height: 1rem;
-    padding: 0 0.25rem;
-    border-radius: 9999px;
-    background-color: #b0432e;
-    font-size: 0.625rem;
-    font-weight: 500;
-    color: #fff;
-  }
-
-  @media (min-width: 640px) {
-    .feedback-btn.alt .n {
-      display: inline;
-      min-width: auto;
-      height: auto;
-      padding: 0;
-      border-radius: 0;
-      background-color: transparent;
-      font-size: 0.75rem;
-      font-weight: 400;
-      color: #645646;
-      vertical-align: baseline;
-    }
   }
 
   .writing-dim {

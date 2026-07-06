@@ -141,7 +141,7 @@ See [`AGENTS.md`](AGENTS.md) for architecture, file map, API contracts, data mod
 
 ## Tech stack
 
-- Next.js 15 (App Router)
+- Next.js 16 (App Router)
 - React 19
 - Tailwind CSS
 - Supabase (Postgres + Auth + RLS)

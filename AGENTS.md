@@ -10,7 +10,7 @@ A Next.js journaling app for English learners. Users write journal entries **par
 
 | Layer | Choice |
 |-------|--------|
-| Framework | Next.js 15 (App Router), React 19, TypeScript |
+| Framework | Next.js 16 (App Router), React 19, TypeScript |
 | Styling | Tailwind CSS 3 — palettes: `ink`, `sage`, `coral`, `pen`; fonts `display` (Fraunces), `sans` / `mono` (Courier Prime) |
 | Database & auth | Supabase (Postgres + Auth + RLS) via `@supabase/ssr` |
 | AI | Vercel AI SDK (`ai`) — Google Gemini (default) or OpenAI, selected by env vars |
@@ -77,8 +77,8 @@ src/
 │       ├── client.ts               # Browser Supabase client
 │       ├── server.ts               # Server Supabase client (cookies)
 │       ├── admin.ts                # Service-role Supabase client
-│       └── middleware.ts           # Session refresh in middleware
-└── middleware.ts                   # Runs updateSession on all routes
+│       └── middleware.ts           # updateSession() helper for proxy
+└── proxy.ts                        # Next.js proxy — refreshes auth cookies on all routes
 supabase/schema.sql                 # DB schema + RLS policies (run in Supabase SQL Editor)
 ```
 
@@ -188,7 +188,7 @@ The topbar feedback badge counts **paragraph-level** `suggestions.length`, not e
 - `AuthGate` subscribes to `supabase.auth.onAuthStateChange`.
 - Email: `signUp` / `signInWithPassword` in `AuthForm`.
 - OAuth: `signInWithOAuth` → provider → `/auth/callback` → `exchangeCodeForSession` → redirect `/`.
-- `middleware.ts` calls `updateSession()` to refresh cookies on every request.
+- `proxy.ts` calls `updateSession()` from `lib/supabase/middleware.ts` to refresh cookies on every request.
 - API routes use **server** `createClient()` and reject unauthenticated entry and preferences requests with 401.
 
 ### Admin flow

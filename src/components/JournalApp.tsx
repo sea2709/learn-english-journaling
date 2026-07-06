@@ -95,6 +95,9 @@ export function JournalApp({ user }: { user: User }) {
   const [feedbackFormError, setFeedbackFormError] = useState<string | null>(
     null
   );
+  const [feedbackFormSuccess, setFeedbackFormSuccess] = useState<string | null>(
+    null
+  );
 
   const entryId = selectedId ?? draftEntryId;
 
@@ -307,8 +310,7 @@ export function JournalApp({ user }: { user: User }) {
 
     try {
       await submitFeedback(payload);
-      setFeedbackFormOpen(false);
-      setMessage({ type: "success", text: "Feedback sent — thank you!" });
+      setFeedbackFormSuccess("Feedback sent — thank you!");
     } catch (error) {
       const text =
         error instanceof ApiError
@@ -477,6 +479,7 @@ export function JournalApp({ user }: { user: User }) {
             type="button"
             onClick={() => {
               setFeedbackFormError(null);
+              setFeedbackFormSuccess(null);
               setFeedbackFormOpen(true);
             }}
             className="lnk"
@@ -681,9 +684,11 @@ export function JournalApp({ user }: { user: User }) {
         open={feedbackFormOpen}
         submitting={feedbackSubmitting}
         error={feedbackFormError}
+        successMessage={feedbackFormSuccess}
         onClose={() => {
           setFeedbackFormOpen(false);
           setFeedbackFormError(null);
+          setFeedbackFormSuccess(null);
         }}
         onSubmit={(payload) => void handleSubmitFeedback(payload)}
       />

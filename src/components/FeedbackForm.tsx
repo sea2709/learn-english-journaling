@@ -11,6 +11,7 @@ interface FeedbackFormProps {
   open: boolean;
   submitting: boolean;
   error: string | null;
+  successMessage: string | null;
   onClose: () => void;
   onSubmit: (payload: UserFeedbackSubmission) => void;
 }
@@ -19,6 +20,7 @@ export function FeedbackForm({
   open,
   submitting,
   error,
+  successMessage,
   onClose,
   onSubmit,
 }: FeedbackFormProps) {
@@ -28,13 +30,13 @@ export function FeedbackForm({
   const [validationError, setValidationError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!open) return;
+    if (!open || successMessage) return;
 
     setCategory("idea");
     setMessage("");
     setContactNote("");
     setValidationError(null);
-  }, [open]);
+  }, [open, successMessage]);
 
   useEffect(() => {
     if (!open) return;
@@ -116,6 +118,12 @@ export function FeedbackForm({
         </header>
 
         <div className="flex-1 overflow-y-auto px-5 py-4">
+          {successMessage ? (
+            <div className="rounded bg-sage-100/60 px-4 py-3 font-sans text-sm text-sage-800">
+              {successMessage}
+            </div>
+          ) : (
+            <>
           <p className="text-sm leading-relaxed text-ink-600">
             Tell us about a bug, share an idea, or let us know how the app is
             working for you.
@@ -196,17 +204,29 @@ export function FeedbackForm({
               {validationError ?? error}
             </p>
           )}
+            </>
+          )}
         </div>
 
         <footer className="border-t border-paper-line px-5 py-4">
-          <button
-            type="button"
-            onClick={handleSubmit}
-            disabled={submitting}
-            className="feedback-btn w-full justify-center"
-          >
-            {submitting ? "Sending…" : "Send feedback"}
-          </button>
+          {successMessage ? (
+            <button
+              type="button"
+              onClick={onClose}
+              className="feedback-btn w-full justify-center"
+            >
+              Close
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={handleSubmit}
+              disabled={submitting}
+              className="feedback-btn w-full justify-center"
+            >
+              {submitting ? "Sending…" : "Send feedback"}
+            </button>
+          )}
         </footer>
       </aside>
     </>

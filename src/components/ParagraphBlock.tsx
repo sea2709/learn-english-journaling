@@ -75,7 +75,7 @@ export function ParagraphBlock({
       }`}
       onClick={() => onSelect(paragraph.id)}
     >
-      <div className="notebook-margin relative pl-14">
+      <div className="notebook-margin relative sm:pl-14">
         <textarea
           ref={textareaRef}
           value={paragraph.text}
@@ -84,16 +84,16 @@ export function ParagraphBlock({
           onKeyDown={handleKeyDown}
           placeholder={
             index === 0
-              ? "Start writing… Press Enter for a new paragraph."
+              ? "Start writing… Enter for a new paragraph."
               : "Continue writing…"
           }
           rows={1}
-          className="w-full resize-none overflow-hidden border-0 bg-transparent py-2 font-mono text-lg leading-[1.75] text-ink-900 placeholder:text-ink-400 focus:outline-none focus:ring-0"
+          className="w-full resize-none overflow-hidden border-0 bg-transparent py-1 font-mono text-base leading-relaxed text-ink-900 placeholder:text-ink-400 focus:outline-none focus:ring-0 sm:py-2 sm:text-lg sm:leading-[1.75]"
         />
       </div>
 
       {canCheck && (
-        <div className="mt-1 pl-14">
+        <div className="mt-0.5 sm:mt-1 sm:pl-14">
           <div className="flex items-center">
             {stale && !isAnalyzing && (
               <span className="text-[11px] text-pen/70">edited</span>
@@ -105,7 +105,7 @@ export function ParagraphBlock({
                 onAnalyze(paragraph.id);
               }}
               disabled={isAnalyzing}
-              className="feedback-btn ml-auto min-h-11 px-4 text-xs sm:min-h-0 sm:px-3 sm:py-1.5"
+              className="feedback-btn ml-auto px-3 py-1 text-xs sm:px-3 sm:py-1.5"
             >
               <span className="pen" aria-hidden>
                 ✓
@@ -122,14 +122,14 @@ export function ParagraphBlock({
       )}
 
       {hasNotes && paragraph.analysis && (
-        <div className="ml-14 mt-1 border-l-2 border-pen/30 pl-3">
+        <div className="mt-1 border-l-2 border-pen/30 pl-3 sm:ml-14">
           <button
             type="button"
             onClick={(e) => {
               e.stopPropagation();
               setNotesExpanded((v) => !v);
             }}
-            className="flex min-h-11 items-center gap-1.5 py-2 text-[11px] font-medium uppercase tracking-wide text-pen sm:min-h-0 sm:py-0"
+            className="flex items-center gap-1.5 py-1 text-[11px] font-medium uppercase tracking-wide text-pen sm:py-0"
             aria-expanded={notesExpanded}
           >
             <svg

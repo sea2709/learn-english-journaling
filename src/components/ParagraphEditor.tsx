@@ -146,7 +146,7 @@ export function ParagraphEditor({
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       {blocks.map((block) => (
         <div key={block.id} data-block-id={block.id}>
           {block.type === "text" ? (
@@ -173,12 +173,12 @@ export function ParagraphEditor({
         </div>
       ))}
 
-      <div className="flex flex-wrap items-center gap-3 pl-14">
+      <div className="flex items-center sm:pl-14">
         <button
           type="button"
           onClick={() => fileInputRef.current?.click()}
           disabled={uploading}
-          className="inline-flex min-h-11 items-center gap-1.5 py-2 font-sans text-sm text-pen hover:text-ink-900 disabled:opacity-50 sm:min-h-0 sm:py-0"
+          className="inline-flex items-center gap-1 font-sans text-xs text-pen hover:text-ink-900 disabled:opacity-50 sm:gap-1.5 sm:text-sm"
         >
           <svg
             className="h-4 w-4 shrink-0"
@@ -206,13 +206,8 @@ export function ParagraphEditor({
             if (file) void handleAddImage(file);
           }}
         />
-        <p className="font-sans text-sm text-ink-400">
-          <span className="sm:hidden">
-            Enter — new paragraph · Tap Check for feedback
-          </span>
-          <span className="hidden sm:inline">
-            Enter — new paragraph · Ctrl+Enter — check paragraph
-          </span>
+        <p className="ml-3 hidden font-sans text-sm text-ink-400 sm:inline">
+          Enter — new paragraph · Ctrl+Enter — check paragraph
         </p>
       </div>
     </div>

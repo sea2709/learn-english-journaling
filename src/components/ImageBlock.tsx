@@ -49,7 +49,7 @@ export function ImageBlock({
       className="group relative"
       onClick={() => onSelect(block.id)}
     >
-      <div className="relative ml-12 overflow-hidden rounded border border-paper-line/60 bg-paper-line/20">
+      <div className="relative overflow-hidden rounded border border-paper-line/60 bg-paper-line/20 sm:ml-12">
         {loading && (
           <div className="flex h-40 items-center justify-center font-sans text-xs text-ink-400">
             Loading image…

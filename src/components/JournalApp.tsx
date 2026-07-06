@@ -463,7 +463,7 @@ export function JournalApp({ user }: { user: User }) {
         />
       </header>
 
-      <main className="mx-auto max-w-sheet px-4 py-8 sm:px-6 sm:py-12">
+      <main className="mx-auto max-w-sheet px-4 py-5 sm:px-6 sm:py-12">
         {mockMode && (
           <div className="mb-6 rounded border border-amber-200/80 bg-amber-50/80 px-4 py-2.5 font-sans text-xs text-amber-900">
             Demo mode — add{" "}
@@ -487,16 +487,16 @@ export function JournalApp({ user }: { user: User }) {
           </div>
         )}
 
-        <div className="mb-8">
+        <div className="mb-5 sm:mb-8">
           <input
             id="title"
             type="text"
             value={title}
             onChange={(e) => setTitle(e.target.value)}
             placeholder={formatTodayDisplay()}
-            className="w-full border-0 bg-transparent text-center font-display text-3xl font-semibold text-ink-900 placeholder:text-ink-400 focus:outline-none focus:ring-0 sm:text-[2rem]"
+            className="w-full border-0 bg-transparent text-center font-display text-2xl font-semibold text-ink-900 placeholder:text-ink-400 focus:outline-none focus:ring-0 sm:text-[2rem]"
           />
-          <div className="mt-3 flex justify-center" aria-hidden>
+          <div className="mt-2 flex justify-center sm:mt-3" aria-hidden>
             <span className="block h-0.5 w-10 rounded-full bg-pen sm:w-12" />
           </div>
         </div>

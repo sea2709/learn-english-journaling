@@ -34,23 +34,30 @@ src/
 │       │   └── [id]/route.ts       # GET one, DELETE (auth required)
 │       ├── preferences/
 │       │   └── route.ts            # GET/PATCH — analysis preferences (auth required)
+│       ├── feedback/
+│       │   └── route.ts            # POST user feedback (auth required)
 │       └── admin/
 │           ├── stats/route.ts      # GET auth stats (admin only)
-│           └── users/route.ts      # GET paginated user list (admin only)
+│           ├── users/route.ts      # GET paginated user list (admin only)
+│           ├── feedback/route.ts   # GET paginated feedback list (admin only)
+│           └── feedback/[id]/route.ts  # PATCH feedback status/notes (admin only)
 ├── components/
 │   ├── AuthGate.tsx                # Session gate → AuthForm or JournalApp
 │   ├── AuthForm.tsx                # Email + social sign-in
 │   ├── SocialAuthButtons.tsx       # Google / Facebook OAuth
 │   ├── JournalApp.tsx              # Main app shell & state orchestration
+│   ├── TopActionsMenu.tsx          # Topbar actions; hamburger menu below 640px
 │   ├── ParagraphEditor.tsx         # Multi-block editor (text + images)
 │   ├── ParagraphBlock.tsx          # Single paragraph + Check + inline notes
 │   ├── ImageBlock.tsx              # Entry image preview + remove
 │   ├── EntryDrawer.tsx             # Past entries overlay (left)
 │   ├── FeedbackDrawer.tsx          # Full-entry review overlay (right)
+│   ├── FeedbackForm.tsx            # User feedback overlay (bug / idea / other)
 │   ├── CheckFocusSettings.tsx      # Check focus overlay (focus areas + learning goal)
 │   ├── SuggestionRow.tsx           # Collapsible suggestion row
 │   ├── ScoreRing.tsx               # Grammar score ring (0–10 display)
-│   └── AdminDashboard.tsx          # Admin stats + user table
+│   ├── AdminDashboard.tsx          # Admin stats + user table
+│   └── AdminFeedbackSection.tsx    # Admin user-feedback triage table
 ├── hooks/
 │   └── useAutoSaveEntry.ts         # Debounced auto-save (10s), flush, dirty tracking
 ├── lib/
@@ -62,6 +69,8 @@ src/
 │   ├── entries-db.ts               # Supabase CRUD for entries/blocks
 │   ├── entry-images.ts             # Supabase Storage upload/signed URL/delete
 │   ├── entry-utils.ts              # Block helpers, list-item mapping, month groups
+│   ├── feedback-db.ts              # Supabase CRUD for user_feedback
+│   ├── feedback-schema.ts          # Feedback category constants + Zod schema
 │   ├── admin-auth.ts               # requireAdmin(), ADMIN_EMAILS parsing
 │   ├── admin-users.ts              # Supabase Admin API: list users, stats
 │   └── supabase/
@@ -79,9 +88,11 @@ supabase/schema.sql                 # DB schema + RLS policies (run in Supabase 
 flowchart TB
   subgraph client [Browser]
     AuthGate --> JournalApp
+    JournalApp --> TopActionsMenu
     JournalApp --> ParagraphEditor
     JournalApp --> EntryDrawer
     JournalApp --> FeedbackDrawer
+    JournalApp --> FeedbackForm
     JournalApp --> CheckFocusSettings
     JournalApp --> useAutoSave["hooks/useAutoSaveEntry"]
     ParagraphEditor --> ParagraphBlock
@@ -89,6 +100,7 @@ flowchart TB
     FeedbackDrawer --> ScoreRing
     FeedbackDrawer --> SuggestionRow
     AdminPage["app/admin"] --> AdminDashboard
+    AdminDashboard --> AdminFeedbackSection
   end
 
   subgraph next [Next.js API Routes]
@@ -99,6 +111,8 @@ flowchart TB
     entryId["GET/DELETE /api/entries/:id"]
     adminStats["GET /api/admin/stats"]
     adminUsers["GET /api/admin/users"]
+    adminFeedback["GET/PATCH /api/admin/feedback"]
+    userFeedback["POST /api/feedback"]
   end
 
   subgraph services [Services]
@@ -116,6 +130,8 @@ flowchart TB
   JournalApp --> entryId
   AdminDashboard --> adminStats
   AdminDashboard --> adminUsers
+  AdminFeedbackSection --> adminFeedback
+  JournalApp --> userFeedback
   analyze --> ai
   review --> ai
   entries --> db
@@ -179,6 +195,7 @@ The topbar feedback badge counts **paragraph-level** `suggestions.length`, not e
 
 - `/admin` page checks session + `ADMIN_EMAILS` via `isAdminEmail()`; redirects non-admins home.
 - `AdminDashboard` fetches `GET /api/admin/stats` and `GET /api/admin/users` (paginated, sortable).
+- `AdminFeedbackSection` fetches `GET /api/admin/feedback` and updates rows via `PATCH /api/admin/feedback/:id`.
 - Admin routes use `requireAdmin()` and `lib/supabase/admin.ts` (service role key).
 
 ## Data model
@@ -277,13 +294,17 @@ Centered single-column editor (`max-w-sheet`) with a sticky topbar and overlay d
 
 | Area | Component | Notes |
 |------|-----------|-------|
-| Topbar | `JournalApp` | Entries toggle, Feedback toggle (badge = inline note count), Check focus, Save status, sign out |
-| Center | Title + `ParagraphEditor` | Main writing area; per-paragraph feedback inline; active block shows focus summary |
+| Topbar left | `JournalApp` | Brand title + **Entries** button (saved count badge) |
+| Topbar right | `TopActionsMenu` | Wide screens: inline New entry, Sign out, Send feedback, Check focus, Feedback (badge = inline note count). Below 640px: hamburger menu with the same actions |
+| Center | Title + `ParagraphEditor` + save footer | Main writing area; per-paragraph feedback inline; active block shows focus summary; **Save** button and auto-save status in footer (not topbar) |
 | Left overlay | `EntryDrawer` | Past entries grouped by month; new entry, refresh, delete |
 | Right overlay | `FeedbackDrawer` | Full-entry AI review on demand; shows current focus summary |
 | Overlay | `CheckFocusSettings` | Focus-area toggles + optional learning goal |
+| Overlay | `FeedbackForm` | Submit app feedback (bug / idea / other) |
 
-Key CSS utilities in `globals.css`: `.topbar`, `.feedback-btn`, `.pen`, `.lnk`, `.writing-dim`, `body.drawer-open` (scroll lock when entries, feedback, or check-focus overlay is open).
+**Mobile editor:** no left notebook margin or dot below `sm`; writing area is full width. Notebook margin (`pl-14` + `.notebook-margin::before` dot) applies from `sm` up.
+
+Key CSS utilities in `globals.css`: `.topbar`, `.topbar-left`, `.top-actions`, `.feedback-btn`, `.pen`, `.lnk`, `.notebook-margin`, `.writing-dim`, `body.drawer-open` (scroll lock when entries, feedback, check-focus, or feedback-form overlay is open).
 
 ## Conventions for agents
 
@@ -338,7 +359,9 @@ Use lowercase kebab-case for the slug (2–5 words from the ticket title). One t
 | Inline paragraph feedback | `ParagraphBlock.tsx`, `SuggestionRow.tsx` |
 | Full-entry review drawer | `FeedbackDrawer.tsx`, `ScoreRing.tsx`, `JournalApp.tsx` |
 | Entries drawer | `EntryDrawer.tsx`, `entry-utils.groupEntriesByMonth()`, `entry-utils.toListItem()` |
-| Admin dashboard | `AdminDashboard.tsx`, `lib/admin-auth.ts`, `lib/admin-users.ts`, `app/api/admin/` |
+| Topbar / mobile actions menu | `TopActionsMenu.tsx`, `JournalApp.tsx`, `globals.css` (`.topbar`, `.top-actions`) |
+| User feedback form | `FeedbackForm.tsx`, `feedback-schema.ts`, `feedback-db.ts`, `app/api/feedback/` |
+| Admin dashboard | `AdminDashboard.tsx`, `AdminFeedbackSection.tsx`, `lib/admin-auth.ts`, `lib/admin-users.ts`, `lib/feedback-db.ts`, `app/api/admin/` |
 
 ## Scripts
 

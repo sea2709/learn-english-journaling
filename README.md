@@ -10,9 +10,11 @@ Learn English through daily journaling. Write paragraph by paragraph, get AI fee
 - **Full-entry review** — open the Feedback drawer for a holistic grammar score, tone, polished version, and suggestions across the whole entry
 - **Auto-save** — entries save automatically every 10 seconds; click Save for an immediate write
 - **Past entries drawer** — browse entries grouped by month, reload, or delete
+- **Entry images** — insert photos between paragraph blocks (private Supabase Storage)
+- **User feedback** — send bug reports, ideas, or other notes to admins from the topbar
 - **User accounts** — sign in with Google, Facebook, or email via Supabase Auth
 - **Swappable AI providers** — Gemini by default, switch models via env vars
-- **Admin dashboard** — optional `/admin` page for signup and activity stats (requires `ADMIN_EMAILS` + service role key)
+- **Admin dashboard** — optional `/admin` page for signup stats, user list, and user-feedback triage (requires `ADMIN_EMAILS` + service role key)
 
 ## Quick start
 
@@ -85,11 +87,12 @@ Without an API key, the app runs in demo mode with sample analysis responses.
 1. Register or sign in
 2. (Optional) Open **Check focus** in the topbar to choose which areas AI should review and add a short learning goal (e.g. "I'm preparing for IELTS")
 3. Write a paragraph in the editor
-4. Press **Ctrl+Enter** (or click **Check**) to get AI feedback on that paragraph — suggestions appear inline below the block
+4. Press **Ctrl+Enter** (or click **Check**; on mobile, tap **Check**) to get AI feedback on that paragraph — suggestions appear inline below the block
 5. Press **Enter** to add another paragraph, or **Add image** to insert a photo between blocks
-6. Open **Feedback** in the topbar for a full-entry review (uses your current check focus settings)
-7. Entries auto-save every 10 seconds; use **Save** for an immediate write
+6. Open **Feedback** in the topbar (or hamburger menu on small screens) for a full-entry review (uses your current check focus settings)
+7. Entries auto-save every 10 seconds; use **Save** at the bottom of the editor for an immediate write
 8. Open **Entries** in the topbar to browse, reload, or delete past entries
+9. Use **Send feedback** in the topbar menu to report bugs or share ideas with the team
 
 ## Data model
 
@@ -98,6 +101,7 @@ auth.users (Supabase Auth)
  ├── journal_entries (title, date, status)
  │    └── journal_paragraphs (block_type, text, analysis JSON, image_path, order)
  └── user_preferences (analysis focus areas + optional learning goal)
+ └── user_feedback (bug / idea / other submissions from signed-in users)
 storage.buckets entry-images  # private images for entries
 ```
 
@@ -107,15 +111,29 @@ Row Level Security policies enforce that `user_id = auth.uid()` on all journal a
 
 | Area | Purpose |
 |------|---------|
-| Topbar | Entries drawer, Feedback drawer, Check focus settings, save status, sign out |
+| Topbar (left) | App title + **Entries** button with saved count |
+| Topbar (right) | New entry, Sign out, Send feedback, Check focus, Feedback — inline on wide screens; hamburger menu below 640px |
 | Center | Title + paragraph blocks with inline per-paragraph notes |
+| Editor footer | Auto-save status + **Save** button |
 | Left drawer | Saved journal entries grouped by month |
 | Right drawer | Full-entry AI review |
 | Check focus overlay | Toggle focus areas and set an optional learning goal |
+| Send feedback overlay | Submit bug reports, ideas, or other app feedback |
+
+## Mobile UI
+
+On phones and narrow screens, the app prioritizes writing space and touch-friendly controls:
+
+- **Topbar** — **English Journal** and **Entries** (with saved count) stay visible on the left. Other actions (**New entry**, **Sign out**, **Send feedback**, **Check focus**, **Feedback**) move into the **hamburger menu** (☰) on the right.
+- **Writing area** — paragraphs use the full screen width; the notebook left margin and red line only appear on larger screens.
+- **Paragraph feedback** — tap **Check** on a paragraph after you write it. `Ctrl+Enter` is for desktop keyboards; on mobile, use the button.
+- **New paragraph** — press **Enter** on your keyboard, or use the on-screen keyboard’s return key.
+- **Save** — auto-save still runs every 10 seconds; tap **Save** at the bottom of the editor when you want an immediate write.
+- **Drawers & overlays** — **Entries**, **Feedback**, **Check focus**, and **Send feedback** open as full-screen-friendly overlays; scroll is locked while one is open.
 
 ## Admin dashboard
 
-Set `ADMIN_EMAILS` (comma-separated) and `SUPABASE_SERVICE_ROLE_KEY` in `.env.local`, then visit `/admin` while signed in with an allowed email. The dashboard shows signup and activity stats plus a searchable user table.
+Set `ADMIN_EMAILS` (comma-separated) and `SUPABASE_SERVICE_ROLE_KEY` in `.env.local`, then visit `/admin` while signed in with an allowed email. The dashboard shows signup and activity stats, a searchable user table, and a user-feedback inbox.
 
 ## Technical reference (for AI agents)
 

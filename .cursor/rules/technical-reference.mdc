@@ -12,7 +12,7 @@ It covers architecture, data model, API routes, auth, AI layer, file map, conven
 ## Quick facts
 
 - Next.js 15 App Router + Supabase (auth + Postgres) + Vercel AI SDK (Gemini/OpenAI)
-- Main UI: `AuthGate` → `JournalApp` (paragraph editor + feedback drawer + entry drawer + check focus settings)
+- Main UI: `AuthGate` → `JournalApp` (paragraph editor + drawers + `TopActionsMenu` hamburger on mobile)
 - Persistence: `journal_entries` + `journal_paragraphs` via `src/lib/entries-db.ts`; `user_preferences` via `src/lib/preferences-db.ts`
 - Use `StoredJournalEntry` / `JournalParagraph` / `AnalysisPreferences` types
 - Analysis is per-paragraph with optional focus areas; `/api/analyze` is public; entry and preferences APIs require auth

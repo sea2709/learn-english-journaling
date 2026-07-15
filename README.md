@@ -68,6 +68,11 @@ The sign-in screen offers **Continue with Google** and **Continue with Facebook*
    - `https://your-production-domain.com/auth/callback` (production)
 2. **Google** — enable under **Authentication → Providers → Google**, then add OAuth client ID and secret from [Google Cloud Console](https://console.cloud.google.com/apis/credentials). Authorized redirect URI in Google must be `https://<your-project-ref>.supabase.co/auth/v1/callback`.
 3. **Facebook** — enable under **Authentication → Providers → Facebook**, then add App ID and App Secret from [Meta for Developers](https://developers.facebook.com/). Add `https://<your-project-ref>.supabase.co/auth/v1/callback` as a valid OAuth redirect URI in the Facebook app settings.
+4. **Facebook data deletion** — set `FACEBOOK_APP_SECRET` in `.env.local` (same App Secret as above). In the [Meta App Dashboard](https://developers.facebook.com/) under **Settings → Basic**, set **Data Deletion Request URL** to:
+   - `http://localhost:3000/api/facebook/data-deletion` (local testing with a tunnel if needed)
+   - `https://your-production-domain.com/api/facebook/data-deletion` (production)
+
+   When a user removes the app and requests deletion in Facebook, Meta POSTs to that URL. The app deletes the linked account (if any) and returns a confirmation link at `/deletion/<code>`. See [Meta’s data deletion callback docs](https://developers.facebook.com/documentation/development/create-an-app/app-dashboard/data-deletion-callback).
 
 After saving provider credentials in Supabase, SSO buttons on the home page will redirect users through the provider and back to `/auth/callback`.
 

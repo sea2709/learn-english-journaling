@@ -118,3 +118,23 @@ export async function deleteEntryImagesForEntry(
     throw removeError;
   }
 }
+
+/** Remove all entry-images objects under `{userId}/` (not cascaded by auth user delete). */
+export async function deleteAllImagesForUser(
+  supabase: SupabaseClient,
+  userId: string
+): Promise<void> {
+  const { data: entries, error: listError } = await supabase.storage
+    .from(ENTRY_IMAGES_BUCKET)
+    .list(userId);
+
+  if (listError) {
+    throw listError;
+  }
+
+  if (!entries || entries.length === 0) return;
+
+  for (const entry of entries) {
+    await deleteEntryImagesForEntry(supabase, userId, entry.name);
+  }
+}

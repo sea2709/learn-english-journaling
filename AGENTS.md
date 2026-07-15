@@ -24,6 +24,7 @@ src/
 │   ├── page.tsx                    # Renders <AuthGate />
 │   ├── layout.tsx                  # Root layout, fonts, globals
 │   ├── admin/page.tsx              # Admin dashboard (ADMIN_EMAILS gate)
+│   ├── deletion/[code]/page.tsx    # Public Facebook data-deletion status page
 │   ├── auth/
 │   │   ├── callback/route.ts       # OAuth / recovery code exchange → redirect (supports ?next=)
 │   │   └── reset-password/page.tsx # Set new password after recovery email
@@ -38,6 +39,8 @@ src/
 │       │   └── route.ts            # GET/PATCH — analysis preferences (auth required)
 │       ├── feedback/
 │       │   └── route.ts            # POST user feedback (auth required)
+│       ├── facebook/
+│       │   └── data-deletion/route.ts  # POST Meta data deletion callback (no auth)
 │       └── admin/
 │           ├── stats/route.ts      # GET auth stats (admin only)
 │           ├── users/route.ts      # GET paginated user list (admin only)
@@ -74,6 +77,8 @@ src/
 │   ├── entry-utils.ts              # Block helpers, list-item mapping, month groups
 │   ├── feedback-db.ts              # Supabase CRUD for user_feedback
 │   ├── feedback-schema.ts          # Feedback category constants + Zod schema
+│   ├── facebook-signed-request.ts  # Verify Meta signed_request payloads
+│   ├── data-deletion.ts            # Facebook data deletion + status lookup
 │   ├── admin-auth.ts               # requireAdmin(), ADMIN_EMAILS parsing
 │   ├── admin-users.ts              # Supabase Admin API: list users, stats
 │   └── supabase/
@@ -212,10 +217,11 @@ auth.users
  │    └── journal_paragraphs (id, entry_id, order, block_type, text, analyzed_text, analysis jsonb, image_path)
  └── user_preferences (user_id, analysis_preferences jsonb, created_at, updated_at)
  └── user_feedback (id, user_id, user_email, category, message, contact_note, status, internal_notes, created_at, updated_at)
+data_deletion_requests (confirmation_code, facebook_user_id, supabase_user_id, status, message, …)  # service role only
 storage.buckets entry-images  # private; path {user_id}/{entry_id}/{image_id}.ext
 ```
 
-RLS: all policies enforce `user_id = auth.uid()` (entries, preferences) or entry ownership (paragraphs). Storage objects are scoped to the first path folder (`auth.uid()`). Schema in `supabase/schema.sql`.
+RLS: all policies enforce `user_id = auth.uid()` (entries, preferences) or entry ownership (paragraphs). Storage objects are scoped to the first path folder (`auth.uid()`). `data_deletion_requests` has RLS enabled with no client policies (service role only). Schema in `supabase/schema.sql`.
 
 `journal_paragraphs` stores an ordered list of **blocks**: `block_type = 'text'` (writing + analysis) or `'image'` (`image_path` only).
 
@@ -270,10 +276,13 @@ Scores are stored 0–100 in the DB and AI schema. `ScoreRing.scoreToDisplay()` 
 | `POST` | `/api/feedback` | Yes | `{ category, message, contactNote? }` → `{ success: true }` |
 | `GET` | `/api/admin/feedback` | Admin | `?page&perPage&status&sort&order` → `AdminFeedbackResponse` |
 | `PATCH` | `/api/admin/feedback/:id` | Admin | `{ status?, internalNotes? }` → `{ feedback: AdminFeedbackRow }` |
+| `POST` | `/api/facebook/data-deletion` | No (Meta signed) | form `signed_request` → `{ url, confirmation_code }` |
 
 Client wrappers in `lib/api.ts`: `analyzeText`, `analyzeEntryReview`, `fetchPreferences`, `savePreferences`, `listEntries`, `fetchEntry`, `saveEntry`, `deleteEntry`, `fetchAdminStats`, `fetchAdminUsers`, `submitFeedback`, `fetchAdminFeedback`, `updateAdminFeedback`.
 
 Errors return `{ error: string }` with 4xx/5xx. Client code throws `ApiError` from `lib/api.ts`.
+
+Facebook data deletion: Meta POSTs a signed request to `/api/facebook/data-deletion`. The handler verifies HMAC with `FACEBOOK_APP_SECRET`, deletes the matching account when found, and records status at `/deletion/:code` (`data_deletion.ts`).
 
 ## Environment variables
 
@@ -287,8 +296,9 @@ See `.env.example`. Required for full functionality:
 | `AI_PROVIDER` | `google` (default) or `openai` |
 | `AI_MODEL` | e.g. `gemini-2.0-flash`, `gpt-4o-mini` |
 | `OPENAI_API_KEY` | When `AI_PROVIDER=openai` |
-| `SUPABASE_SERVICE_ROLE_KEY` | Server-only; admin dashboard user queries |
+| `SUPABASE_SERVICE_ROLE_KEY` | Server-only; admin dashboard + data deletion |
 | `ADMIN_EMAILS` | Comma-separated emails allowed to access `/admin` |
+| `FACEBOOK_APP_SECRET` | Meta App Secret; verify data deletion signed_request |
 
 Without an AI key, `/api/analyze` and `/api/analyze/review` return mock data (`mock: true`); UI shows a demo banner.
 
@@ -359,6 +369,7 @@ Use lowercase kebab-case for the slug (2–5 words from the ticket title). One t
 | Change save/load logic | `src/lib/entries-db.ts`, `src/app/api/entries/` |
 | DB schema / RLS | `supabase/schema.sql` |
 | Auth providers / forms | `AuthForm.tsx`, `SocialAuthButtons.tsx`, `ResetPasswordForm.tsx`, Supabase dashboard |
+| Facebook data deletion callback | `app/api/facebook/data-deletion/`, `facebook-signed-request.ts`, `data-deletion.ts`, `app/deletion/[code]/`, `schema.sql` |
 | Editor behavior | `ParagraphEditor.tsx`, `ParagraphBlock.tsx`, `JournalApp.tsx`, `hooks/useAutoSaveEntry.ts` |
 | Inline paragraph feedback | `ParagraphBlock.tsx`, `SuggestionRow.tsx` |
 | Full-entry review drawer | `FeedbackDrawer.tsx`, `ScoreRing.tsx`, `JournalApp.tsx` |

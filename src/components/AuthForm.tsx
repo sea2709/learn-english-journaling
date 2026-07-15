@@ -138,6 +138,13 @@ export function AuthForm() {
             {heading}
           </h1>
           <p className="mt-2 text-sm text-ink-500">{subheading}</p>
+          {step === "choose" && (
+            <p className="mt-4 text-sm leading-relaxed text-ink-500">
+              English Journal helps you learn English through daily writing.
+              Craft entries paragraph by paragraph, get AI feedback on grammar,
+              tone, and word choice, then save your progress across devices.
+            </p>
+          )}
         </div>
 
         {step === "choose" ? (

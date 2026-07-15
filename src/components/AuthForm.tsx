@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { SocialAuthButtons } from "./SocialAuthButtons";
@@ -120,15 +121,19 @@ export function AuthForm() {
   const heading =
     step === "forgot"
       ? "Reset your password."
-      : mode === "login"
-        ? "Welcome back."
-        : "Join English Journal.";
+      : step === "choose"
+        ? "English Journal"
+        : mode === "login"
+          ? "Welcome back."
+          : "Join English Journal.";
   const subheading =
     step === "forgot"
       ? "Enter your email and we will send a reset link."
-      : mode === "login"
-        ? "Sign in to continue your writing practice."
-        : "Create an account to save entries and sync across devices.";
+      : step === "choose"
+        ? "Sign in or Sign up"
+        : mode === "login"
+          ? "Sign in to continue your writing practice."
+          : "Create an account to save entries and sync across devices.";
 
   return (
     <div className="flex min-h-screen items-center justify-center paper-texture px-4 py-12">
@@ -137,7 +142,20 @@ export function AuthForm() {
           <h1 className="font-display text-3xl font-semibold text-ink-900">
             {heading}
           </h1>
-          <p className="mt-2 text-sm text-ink-500">{subheading}</p>
+          {step === "choose" ? (
+            <>
+              <p className="mt-4 text-sm leading-relaxed text-ink-500">
+                English Journal helps you learn English through daily writing.
+                Craft entries paragraph by paragraph, get AI feedback on grammar,
+                tone, and word choice, then save your progress across devices.
+              </p>
+              <h2 className="mt-6 font-display text-xl font-semibold text-ink-900">
+                {subheading}
+              </h2>
+            </>
+          ) : (
+            <p className="mt-2 text-sm text-ink-500">{subheading}</p>
+          )}
         </div>
 
         {step === "choose" ? (
@@ -417,8 +435,21 @@ export function AuthForm() {
         )}
 
         <p className="mt-8 text-center text-xs leading-relaxed text-ink-400">
-          By continuing, you agree to our terms of service and acknowledge our
-          privacy policy.
+          By continuing, you agree to our{" "}
+          <Link
+            href="/terms"
+            className="font-medium text-ink-500 underline-offset-2 hover:text-ink-700 hover:underline"
+          >
+            Terms of Service
+          </Link>{" "}
+          and acknowledge our{" "}
+          <Link
+            href="/privacy"
+            className="font-medium text-ink-500 underline-offset-2 hover:text-ink-700 hover:underline"
+          >
+            Privacy Policy
+          </Link>
+          .
         </p>
       </div>
     </div>

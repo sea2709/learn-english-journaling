@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { SocialAuthButtons } from "./SocialAuthButtons";
@@ -424,8 +425,21 @@ export function AuthForm() {
         )}
 
         <p className="mt-8 text-center text-xs leading-relaxed text-ink-400">
-          By continuing, you agree to our terms of service and acknowledge our
-          privacy policy.
+          By continuing, you agree to our{" "}
+          <Link
+            href="/terms"
+            className="font-medium text-ink-500 underline-offset-2 hover:text-ink-700 hover:underline"
+          >
+            Terms of Service
+          </Link>{" "}
+          and acknowledge our{" "}
+          <Link
+            href="/privacy"
+            className="font-medium text-ink-500 underline-offset-2 hover:text-ink-700 hover:underline"
+          >
+            Privacy Policy
+          </Link>
+          .
         </p>
       </div>
     </div>

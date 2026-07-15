@@ -133,9 +133,9 @@ export function FeedbackDrawer({
                     Suggestions ({review.suggestions.length})
                   </h3>
                   <div>
-                    {review.suggestions.map((suggestion, index) => (
+                    {review.suggestions.map((suggestion) => (
                       <SuggestionRow
-                        key={`${suggestion.original}-${index}`}
+                        key={suggestion.id}
                         suggestion={suggestion}
                       />
                     ))}

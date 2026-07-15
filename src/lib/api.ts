@@ -11,6 +11,8 @@ import type {
   FeedbackStatus,
   JournalEntryListItem,
   StoredJournalEntry,
+  Suggestion,
+  SuggestionMessage,
   UserFeedbackSubmission,
 } from "./types";
 
@@ -54,6 +56,24 @@ export async function analyzeEntryReview(
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ text, preferences }),
+  });
+
+  return parseResponse(response);
+}
+
+export async function askAboutSuggestion(params: {
+  paragraphText: string;
+  suggestion: Pick<
+    Suggestion,
+    "id" | "category" | "original" | "suggestion" | "explanation"
+  >;
+  messages: SuggestionMessage[];
+  preferences?: AnalysisPreferences;
+}): Promise<{ reply: string; mock: boolean }> {
+  const response = await fetch("/api/analyze/suggestion-chat", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(params),
   });
 
   return parseResponse(response);

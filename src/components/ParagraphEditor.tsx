@@ -25,6 +25,12 @@ interface ParagraphEditorProps {
   onBlocksChange: (blocks: EntryBlock[]) => void;
   onActiveBlockChange: (id: string) => void;
   onAnalyzeParagraph: (id: string) => void;
+  onAskSuggestion: (
+    paragraphId: string,
+    suggestionId: string,
+    question: string
+  ) => Promise<void>;
+  askingSuggestionId: string | null;
   onError: (message: string) => void;
 }
 
@@ -39,6 +45,8 @@ export function ParagraphEditor({
   onBlocksChange,
   onActiveBlockChange,
   onAnalyzeParagraph,
+  onAskSuggestion,
+  askingSuggestionId,
   onError,
 }: ParagraphEditorProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -162,6 +170,8 @@ export function ParagraphEditor({
               onSelect={onActiveBlockChange}
               onAnalyze={onAnalyzeParagraph}
               onSplit={handleSplit}
+              onAskSuggestion={onAskSuggestion}
+              askingSuggestionId={askingSuggestionId}
             />
           ) : (
             <ImageBlock

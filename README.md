@@ -48,6 +48,17 @@ Open [http://localhost:3000](http://localhost:3000), register an account, and st
 - By default, Supabase may require **email confirmation** before sign-in works. For local development, disable it under **Authentication → Providers → Email → Confirm email**.
 - User identity comes from `auth.users`. Journal entries reference `auth.users(id)` with Row Level Security so each user only sees their own data.
 
+### Password reset (email login)
+
+Email/password users can reset a forgotten password from **Forgot password?** on the sign-in form:
+
+1. The app calls Supabase `resetPasswordForEmail` with redirect  
+   `{origin}/auth/callback?next=/auth/reset-password`.
+2. The recovery email must land on `/auth/callback` (same allowlist as OAuth). After the code exchange, the user is sent to `/auth/reset-password` to set a new password.
+3. Optional: customize the email under **Authentication → Email Templates → Reset Password**.
+
+Ensure **Authentication → URL Configuration** includes your callback URLs (see SSO section below). Query params on the redirect are fine as long as the base callback URL is allowlisted.
+
 ### Google and Facebook sign-in (SSO)
 
 The sign-in screen offers **Continue with Google** and **Continue with Facebook**, similar to Medium. Configure each provider in your Supabase project:

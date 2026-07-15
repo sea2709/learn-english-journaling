@@ -24,7 +24,9 @@ src/
 │   ├── page.tsx                    # Renders <AuthGate />
 │   ├── layout.tsx                  # Root layout, fonts, globals
 │   ├── admin/page.tsx              # Admin dashboard (ADMIN_EMAILS gate)
-│   ├── auth/callback/route.ts      # OAuth code exchange → redirect home
+│   ├── auth/
+│   │   ├── callback/route.ts       # OAuth / recovery code exchange → redirect (supports ?next=)
+│   │   └── reset-password/page.tsx # Set new password after recovery email
 │   └── api/
 │       ├── analyze/
 │       │   ├── route.ts            # POST — per-paragraph AI analysis (no auth)
@@ -43,7 +45,8 @@ src/
 │           └── feedback/[id]/route.ts  # PATCH feedback status/notes (admin only)
 ├── components/
 │   ├── AuthGate.tsx                # Session gate → AuthForm or JournalApp
-│   ├── AuthForm.tsx                # Email + social sign-in
+│   ├── AuthForm.tsx                # Email + social sign-in + forgot password
+│   ├── ResetPasswordForm.tsx       # New password after recovery link
 │   ├── SocialAuthButtons.tsx       # Google / Facebook OAuth
 │   ├── JournalApp.tsx              # Main app shell & state orchestration
 │   ├── TopActionsMenu.tsx          # Topbar actions; hamburger menu below 640px
@@ -187,6 +190,7 @@ The topbar feedback badge counts **paragraph-level** `suggestions.length`, not e
 
 - `AuthGate` subscribes to `supabase.auth.onAuthStateChange`.
 - Email: `signUp` / `signInWithPassword` in `AuthForm`.
+- Forgot password: `AuthForm` calls `resetPasswordForEmail` → recovery email → `/auth/callback?next=/auth/reset-password` → `ResetPasswordForm` calls `updateUser({ password })` → redirect `/`.
 - OAuth: `signInWithOAuth` → provider → `/auth/callback` → `exchangeCodeForSession` → redirect `/`.
 - `proxy.ts` calls `updateSession()` from `lib/supabase/middleware.ts` to refresh cookies on every request.
 - API routes use **server** `createClient()` and reject unauthenticated entry and preferences requests with 401.
@@ -354,7 +358,7 @@ Use lowercase kebab-case for the slug (2–5 words from the ticket title). One t
 | Add API endpoint | `src/app/api/...`, wrapper in `src/lib/api.ts` |
 | Change save/load logic | `src/lib/entries-db.ts`, `src/app/api/entries/` |
 | DB schema / RLS | `supabase/schema.sql` |
-| Auth providers / forms | `AuthForm.tsx`, `SocialAuthButtons.tsx`, Supabase dashboard |
+| Auth providers / forms | `AuthForm.tsx`, `SocialAuthButtons.tsx`, `ResetPasswordForm.tsx`, Supabase dashboard |
 | Editor behavior | `ParagraphEditor.tsx`, `ParagraphBlock.tsx`, `JournalApp.tsx`, `hooks/useAutoSaveEntry.ts` |
 | Inline paragraph feedback | `ParagraphBlock.tsx`, `SuggestionRow.tsx` |
 | Full-entry review drawer | `FeedbackDrawer.tsx`, `ScoreRing.tsx`, `JournalApp.tsx` |

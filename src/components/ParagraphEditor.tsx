@@ -173,7 +173,7 @@ export function ParagraphEditor({
         </div>
       ))}
 
-      <div className="flex items-center sm:pl-14">
+      <div className="flex items-center">
         <button
           type="button"
           onClick={() => fileInputRef.current?.click()}

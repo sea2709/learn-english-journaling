@@ -35,7 +35,7 @@ export function ParagraphBlock({
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const [notesExpanded, setNotesExpanded] = useState(true);
   const stale = isParagraphStale(paragraph);
-  const hasNotes = paragraph.analysis && !stale;
+  const hasNotes = Boolean(paragraph.analysis);
   const dimmed = isWriting && !isActive;
   const canCheck = Boolean(paragraph.text.trim());
   const noteCount = paragraph.analysis?.suggestions.length ?? 0;

@@ -101,6 +101,23 @@ export function formatTodayDisplay(): string {
   });
 }
 
+/** Local calendar day as YYYY-MM-DD (for entry.date matching and saves). */
+export function formatTodayISO(): string {
+  const d = new Date();
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+}
+
+/** First list item for today's local date. List order is updated_at desc. */
+export function findTodaysEntry(
+  entries: JournalEntryListItem[]
+): JournalEntryListItem | null {
+  const today = formatTodayISO();
+  return entries.find((entry) => entry.date === today) ?? null;
+}
+
 export interface EntryMonthGroup {
   key: string;
   label: string;

@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { saveEntry } from "@/lib/api";
-import { formatTodayDisplay } from "@/lib/entry-utils";
+import { formatTodayDisplay, formatTodayISO } from "@/lib/entry-utils";
 import type { EntryBlock, StoredJournalEntry } from "@/lib/types";
 
 export type SaveStatus = "idle" | "pending" | "saving" | "saved" | "error";
@@ -30,11 +30,10 @@ function buildEntry(
   title: string,
   blocks: EntryBlock[]
 ): StoredJournalEntry {
-  const today = new Date().toISOString().split("T")[0];
   return {
     id: entryId,
     title: title.trim() || formatTodayDisplay(),
-    date: today,
+    date: formatTodayISO(),
     blocks,
     status: "saved",
   };

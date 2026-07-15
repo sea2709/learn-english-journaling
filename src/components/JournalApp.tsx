@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { User } from "@supabase/supabase-js";
 import {
   DEFAULT_ANALYSIS_PREFERENCES,
@@ -12,6 +12,7 @@ import type {
   EntryReviewResult,
   JournalEntryListItem,
   JournalParagraph,
+  StoredJournalEntry,
 } from "@/lib/types";
 import {
   analyzeEntryReview,
@@ -29,6 +30,7 @@ import { MAX_SUGGESTION_DISCUSSION_MESSAGES } from "@/lib/suggestion-discussion"
 import {
   canSaveEntry,
   createParagraph,
+  findTodaysEntry,
   formatTodayDisplay,
   getTextBlocks,
   hasAnalyzableContent,
@@ -135,6 +137,30 @@ export function JournalApp({ user }: { user: User }) {
   const saveStatusLabel = getSaveStatusLabel(saveStatus, isDirty);
   const isSaving = saveStatus === "saving";
 
+  const selectedIdRef = useRef(selectedId);
+  const draftHasContentRef = useRef(false);
+  selectedIdRef.current = selectedId;
+  draftHasContentRef.current = canSaveEntry(blocks);
+
+  const applyLoadedEntry = useCallback(
+    (stored: StoredJournalEntry) => {
+      setSelectedId(stored.id);
+      setTitle(stored.title);
+      setBlocks(stored.blocks);
+      setEntryReview(null);
+      markSaved(stored.title, stored.blocks);
+
+      const textBlocks = getTextBlocks(stored.blocks);
+      const firstAnalyzed = textBlocks.find((p) => p.analysis);
+      const activeId =
+        firstAnalyzed?.id ?? textBlocks[0]?.id ?? stored.blocks[0]?.id ?? null;
+      setActiveBlockId(activeId);
+      setMessage(null);
+      setMockMode(false);
+    },
+    [markSaved]
+  );
+
   const refreshEntries = useCallback(async () => {
     setEntriesLoading(true);
     try {
@@ -157,8 +183,33 @@ export function JournalApp({ user }: { user: User }) {
     void (async () => {
       try {
         const nextEntries = await listEntries();
-        if (!cancelled) {
-          setEntries(nextEntries);
+        if (cancelled) return;
+
+        setEntries(nextEntries);
+
+        const todaysEntry = findTodaysEntry(nextEntries);
+        if (!todaysEntry) return;
+
+        // Skip if the user already opened another entry or started writing.
+        if (selectedIdRef.current !== null || draftHasContentRef.current) {
+          return;
+        }
+
+        try {
+          const stored = await fetchEntry(todaysEntry.id);
+          if (cancelled) return;
+          if (selectedIdRef.current !== null || draftHasContentRef.current) {
+            return;
+          }
+          applyLoadedEntry(stored);
+        } catch (error) {
+          if (!cancelled) {
+            const text =
+              error instanceof ApiError
+                ? error.message
+                : "Failed to load today's entry.";
+            setMessage({ type: "error", text });
+          }
         }
       } catch (error) {
         if (!cancelled) {
@@ -178,7 +229,7 @@ export function JournalApp({ user }: { user: User }) {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [applyLoadedEntry]);
 
   useEffect(() => {
     let cancelled = false;
@@ -543,19 +594,7 @@ export function JournalApp({ user }: { user: User }) {
 
     try {
       const stored = await fetchEntry(entry.id);
-      setSelectedId(stored.id);
-      setTitle(stored.title);
-      setBlocks(stored.blocks);
-      setEntryReview(null);
-      markSaved(stored.title, stored.blocks);
-
-      const textBlocks = getTextBlocks(stored.blocks);
-      const firstAnalyzed = textBlocks.find((p) => p.analysis);
-      const activeId =
-        firstAnalyzed?.id ?? textBlocks[0]?.id ?? stored.blocks[0]?.id ?? null;
-      setActiveBlockId(activeId);
-      setMessage(null);
-      setMockMode(false);
+      applyLoadedEntry(stored);
     } catch (error) {
       const text =
         error instanceof ApiError ? error.message : "Failed to load entry.";

@@ -258,3 +258,43 @@ drop policy if exists "Users can insert own feedback" on public.user_feedback;
 create policy "Users can insert own feedback"
   on public.user_feedback for insert
   with check (auth.uid() = user_id);
+
+-- Facebook / Meta data deletion request tracking (service role only)
+create table if not exists public.data_deletion_requests (
+  id uuid primary key default gen_random_uuid(),
+  confirmation_code text not null unique,
+  facebook_user_id text not null,
+  supabase_user_id uuid,
+  status text not null default 'pending',
+  message text not null default '',
+  created_at timestamptz not null default now(),
+  completed_at timestamptz,
+  constraint data_deletion_requests_status_check
+    check (status in ('pending', 'completed', 'failed'))
+);
+
+create index if not exists data_deletion_requests_facebook_user_id_idx
+  on public.data_deletion_requests (facebook_user_id);
+
+alter table public.data_deletion_requests enable row level security;
+-- No policies: only the service role (bypasses RLS) may read or write.
+
+-- Look up auth.users id from a provider identity (Facebook ASID, etc.)
+create or replace function public.find_user_id_by_identity(
+  p_provider text,
+  p_provider_id text
+)
+returns uuid
+language sql
+security definer
+set search_path = auth, public
+as $$
+  select user_id
+  from auth.identities
+  where provider = p_provider
+    and provider_id = p_provider_id
+  limit 1;
+$$;
+
+revoke all on function public.find_user_id_by_identity(text, text) from public;
+grant execute on function public.find_user_id_by_identity(text, text) to service_role;

@@ -75,7 +75,7 @@ export function ParagraphBlock({
       }`}
       onClick={() => onSelect(paragraph.id)}
     >
-      <div className="notebook-margin relative sm:pl-14">
+      <div className="notebook-margin relative">
         <textarea
           ref={textareaRef}
           value={paragraph.text}
@@ -93,7 +93,7 @@ export function ParagraphBlock({
       </div>
 
       {canCheck && (
-        <div className="mt-0.5 sm:mt-1 sm:pl-14">
+        <div className="mt-0.5 sm:mt-1">
           <div className="flex items-center">
             {stale && !isAnalyzing && (
               <span className="text-[11px] text-pen/70">edited</span>
@@ -122,7 +122,7 @@ export function ParagraphBlock({
       )}
 
       {hasNotes && paragraph.analysis && (
-        <div className="mt-1 border-l-2 border-pen/30 pl-3 sm:ml-14">
+        <div className="mt-1 border-l-2 border-pen/30 pl-3">
           <button
             type="button"
             onClick={(e) => {

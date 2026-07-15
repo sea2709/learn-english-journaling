@@ -1,4 +1,4 @@
-import { generateObject } from "ai";
+import { generateObject, generateText } from "ai";
 import { google } from "@ai-sdk/google";
 import { openai } from "@ai-sdk/openai";
 import { z } from "zod";
@@ -6,7 +6,12 @@ import {
   DEFAULT_ANALYSIS_PREFERENCES,
   formatFocusAreasSummary,
 } from "./analysis-preferences";
-import type { AnalysisPreferences, AnalysisResult } from "./types";
+import type {
+  AnalysisPreferences,
+  AnalysisResult,
+  Suggestion,
+  SuggestionMessage,
+} from "./types";
 
 const FOCUS_BULLETS: Record<
   AnalysisPreferences["focusAreas"][number],
@@ -81,16 +86,29 @@ Be encouraging but precise. Prioritize changes that make the writing sound more 
 Include ${suggestionRange}. If the text is already excellent, still provide at least ${minimumSuggestions} minor polish suggestions.${customNote}`;
 }
 
+type RawAnalysisResult = z.infer<typeof analysisSchema>;
+
 function filterSuggestions(
-  result: AnalysisResult,
+  result: RawAnalysisResult,
   preferences: AnalysisPreferences
-): AnalysisResult {
+): RawAnalysisResult {
   const allowed = new Set(preferences.focusAreas);
   return {
     ...result,
     suggestions: result.suggestions.filter((suggestion) =>
       allowed.has(suggestion.category)
     ),
+  };
+}
+
+/** Assign stable ids after the model returns (ids are app-owned, not AI-owned). */
+export function withSuggestionIds(result: RawAnalysisResult): AnalysisResult {
+  return {
+    ...result,
+    suggestions: result.suggestions.map((suggestion) => ({
+      ...suggestion,
+      id: crypto.randomUUID(),
+    })),
   };
 }
 
@@ -196,7 +214,7 @@ export async function analyzeText(
       repairStructuredOutputText(rawText),
   });
 
-  return filterSuggestions(object, preferences);
+  return withSuggestionIds(filterSuggestions(object, preferences));
 }
 
 export function getMockAnalysis(
@@ -204,7 +222,7 @@ export function getMockAnalysis(
   preferences: AnalysisPreferences = DEFAULT_ANALYSIS_PREFERENCES
 ): AnalysisResult {
   const focusSummary = formatFocusAreasSummary(preferences.focusAreas);
-  const result: AnalysisResult = {
+  const result: RawAnalysisResult = {
     correctedText: text,
     tone: "neutral",
     grammarScore: 75,
@@ -240,7 +258,7 @@ export function getMockAnalysis(
     ],
   };
 
-  return filterSuggestions(result, preferences);
+  return withSuggestionIds(filterSuggestions(result, preferences));
 }
 
 export async function reviewEntry(
@@ -263,7 +281,7 @@ export async function reviewEntry(
       repairStructuredOutputText(rawText),
   });
 
-  return filterSuggestions(object, preferences);
+  return withSuggestionIds(filterSuggestions(object, preferences));
 }
 
 export function getMockEntryReview(
@@ -272,7 +290,7 @@ export function getMockEntryReview(
 ): AnalysisResult {
   const paragraphCount = text.split(/\n\n+/).filter((p) => p.trim()).length;
   const focusSummary = formatFocusAreasSummary(preferences.focusAreas);
-  const result: AnalysisResult = {
+  const result: RawAnalysisResult = {
     correctedText: text,
     tone: "neutral",
     grammarScore: 72,
@@ -301,5 +319,71 @@ export function getMockEntryReview(
     ],
   };
 
-  return filterSuggestions(result, preferences);
+  return withSuggestionIds(filterSuggestions(result, preferences));
+}
+
+function buildSuggestionDiscussionPrompt(
+  paragraphText: string,
+  suggestion: Pick<
+    Suggestion,
+    "category" | "original" | "suggestion" | "explanation"
+  >,
+  preferences: AnalysisPreferences
+): string {
+  const customNote = preferences.customNote
+    ? `\nThe learner's goal: ${preferences.customNote}`
+    : "";
+
+  return `You are an expert English language coach helping a non-native speaker understand one specific writing suggestion.
+
+Stay focused on this single suggestion. Be concise (a few short paragraphs at most), encouraging, and precise. Explain why the change helps and when to use the suggested form. Do not invent unrelated corrections or rewrite the whole paragraph unless the learner asks.
+
+Paragraph the learner wrote:
+"""
+${paragraphText}
+"""
+
+Suggestion category: ${suggestion.category}
+Original: ${suggestion.original}
+Suggested: ${suggestion.suggestion}
+Explanation: ${suggestion.explanation}${customNote}`;
+}
+
+export async function discussSuggestion(params: {
+  paragraphText: string;
+  suggestion: Pick<
+    Suggestion,
+    "category" | "original" | "suggestion" | "explanation"
+  >;
+  messages: SuggestionMessage[];
+  preferences?: AnalysisPreferences;
+}): Promise<string> {
+  if (!isAiConfigured()) {
+    throw new Error(
+      "AI provider is not configured. Add GOOGLE_GENERATIVE_AI_API_KEY to your .env.local file."
+    );
+  }
+
+  const preferences = params.preferences ?? DEFAULT_ANALYSIS_PREFERENCES;
+  const { text } = await generateText({
+    model: getModel(),
+    system: buildSuggestionDiscussionPrompt(
+      params.paragraphText,
+      params.suggestion,
+      preferences
+    ),
+    messages: params.messages.map((message) => ({
+      role: message.role,
+      content: message.content,
+    })),
+    temperature: 0.5,
+  });
+
+  return text.trim();
+}
+
+export function getMockSuggestionReply(
+  suggestion: Pick<Suggestion, "original" | "suggestion">
+): string {
+  return `Demo reply: "${suggestion.original}" → "${suggestion.suggestion}" is a useful change because it sounds more natural in everyday English. Configure GOOGLE_GENERATIVE_AI_API_KEY in .env.local for real coaching answers.`;
 }

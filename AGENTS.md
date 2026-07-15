@@ -31,7 +31,8 @@ src/
 │   └── api/
 │       ├── analyze/
 │       │   ├── route.ts            # POST — per-paragraph AI analysis (no auth)
-│       │   └── review/route.ts     # POST — full-entry review (no auth)
+│       │   ├── review/route.ts     # POST — full-entry review (no auth)
+│       │   └── suggestion-chat/route.ts # POST — ask about one suggestion (no auth)
 │       ├── entries/
 │       │   ├── route.ts            # GET list, POST upsert (auth required)
 │       │   └── [id]/route.ts       # GET one, DELETE (auth required)
@@ -60,7 +61,7 @@ src/
 │   ├── FeedbackDrawer.tsx          # Full-entry review overlay (right)
 │   ├── FeedbackForm.tsx            # User feedback overlay (bug / idea / other)
 │   ├── CheckFocusSettings.tsx      # Check focus overlay (focus areas + learning goal)
-│   ├── SuggestionRow.tsx           # Collapsible suggestion row
+│   ├── SuggestionRow.tsx           # Collapsible suggestion row + optional ask-AI thread
 │   ├── ScoreRing.tsx               # Grammar score ring (0–10 display)
 │   ├── AdminDashboard.tsx          # Admin stats + user table
 │   └── AdminFeedbackSection.tsx    # Admin user-feedback triage table
@@ -69,7 +70,8 @@ src/
 ├── lib/
 │   ├── types.ts                    # Shared TypeScript types
 │   ├── api.ts                      # Client-side fetch wrappers + ApiError
-│   ├── ai.ts                       # AI provider, schema, mock analysis
+│   ├── ai.ts                       # AI provider, schema, mock analysis, suggestion chat
+│   ├── suggestion-discussion.ts    # Per-suggestion chat message limits
 │   ├── analysis-preferences.ts     # Focus-area constants, Zod schema, defaults
 │   ├── preferences-db.ts           # Supabase CRUD for user_preferences
 │   ├── entries-db.ts               # Supabase CRUD for entries/blocks
@@ -114,6 +116,7 @@ flowchart TB
   subgraph next [Next.js API Routes]
     analyze["POST /api/analyze"]
     review["POST /api/analyze/review"]
+    suggestionChat["POST /api/analyze/suggestion-chat"]
     preferences["GET/PATCH /api/preferences"]
     entries["GET/POST /api/entries"]
     entryId["GET/DELETE /api/entries/:id"]
@@ -133,6 +136,7 @@ flowchart TB
 
   JournalApp --> analyze
   JournalApp --> review
+  JournalApp --> suggestionChat
   JournalApp --> preferences
   JournalApp --> entries
   JournalApp --> entryId
@@ -142,6 +146,7 @@ flowchart TB
   JournalApp --> userFeedback
   analyze --> ai
   review --> ai
+  suggestionChat --> ai
   entries --> db
   entryId --> db
   preferences --> prefsDb
@@ -158,9 +163,18 @@ flowchart TB
 1. User presses **Ctrl+Enter** or **Check** on a `ParagraphBlock`.
 2. `JournalApp.handleAnalyzeParagraph` calls `analyzeText(text, analysisPreferences)` from `lib/api.ts`.
 3. `POST /api/analyze` validates text (non-empty, ≤ 5000 chars) and optional `preferences` (defaults to all focus areas).
-4. If no AI API key → `getMockAnalysis()`; else `lib/ai.ts` `generateObject()` with Zod schema. Prompts and post-filtering respect `preferences.focusAreas` and `preferences.customNote`.
-5. Result stored on the paragraph as `{ analysis, analyzedText }` in React state.
+4. If no AI API key → `getMockAnalysis()`; else `lib/ai.ts` `generateObject()` with Zod schema. Prompts and post-filtering respect `preferences.focusAreas` and `preferences.customNote`. Each suggestion gets an app-assigned `id` via `withSuggestionIds()`.
+5. Result stored on the paragraph as `{ analysis, analyzedText }` in React state (and persisted on entry save via `analysis` / `analyzed_text`).
 6. Inline `SuggestionRow` components under the paragraph show suggestions; stale edits are flagged via `isParagraphStale()`.
+7. Re-Check replaces `analysis` entirely (including any per-suggestion `discussion` threads).
+
+### Request flow: ask about a suggestion
+
+1. User expands a paragraph suggestion and asks a follow-up in `SuggestionRow` (paragraph notes only; Feedback drawer stays view-only).
+2. `JournalApp.handleAskSuggestion` calls `askAboutSuggestion()` with paragraph text, the suggestion fields, prior `discussion` messages, and preferences.
+3. `POST /api/analyze/suggestion-chat` validates payload (paragraph ≤ 5000 chars, message ≤ 1000 chars, ≤ 20 stored messages after the reply).
+4. If no AI API key → `getMockSuggestionReply()`; else `discussSuggestion()` via `generateText` with a suggestion-scoped system prompt.
+5. User + assistant turns are appended to `suggestion.discussion` on that paragraph’s analysis; auto-save persists the updated JSONB.
 
 ### Request flow: full-entry review
 
@@ -188,6 +202,7 @@ The topbar feedback badge counts **paragraph-level** `suggestions.length`, not e
 3. `upsertEntryForUser()` in `entries-db.ts`:
    - Updates existing entry + syncs blocks (upsert + delete removed IDs), or
    - Inserts new entry; if user has ≥ 50 entries, deletes oldest by `updated_at`.
+   - Text blocks persist `analyzed_text` and `analysis` JSONB (including per-suggestion `discussion`).
 4. Saved entry returned; entries list refreshes on manual save, when the entries drawer opens, or on a debounced timer after auto-save.
 5. `flush()` runs before switching entries to avoid losing unsaved edits; `beforeunload` warns when dirty.
 
@@ -236,7 +251,8 @@ RLS: all policies enforce `user_id = auth.uid()` (entries, preferences) or entry
 | `AnalysisPreferences` | User check focus: `focusAreas[]`, optional `customNote` (≤ 300 chars) |
 | `AnalysisResult` | AI output: `correctedText`, `tone`, `grammarScore`, `summary`, `suggestions[]` |
 | `EntryReviewResult` | Alias of `AnalysisResult` for full-entry review |
-| `Suggestion` | One fix: `category` (`SuggestionCategory`), `original`, `suggestion`, `explanation` |
+| `Suggestion` | One fix: `id`, `category`, `original`, `suggestion`, `explanation`, optional `discussion[]` |
+| `SuggestionMessage` | Follow-up chat turn: `role` (`user` \| `assistant`), `content` |
 | `JournalParagraph` | Text block: `type: "text"`, `id`, `text`, `analysis`, `analyzedText` |
 | `JournalImageBlock` | Image block: `type: "image"`, `id`, `path` (storage path) |
 | `EntryBlock` | `JournalParagraph \| JournalImageBlock` |
@@ -265,6 +281,7 @@ Scores are stored 0–100 in the DB and AI schema. `ScoreRing.scoreToDisplay()` 
 |--------|------|------|-----------------|
 | `POST` | `/api/analyze` | No | `{ text, preferences? }` → `{ analysis, mock }` |
 | `POST` | `/api/analyze/review` | No | `{ text, preferences? }` → `{ review, mock }` |
+| `POST` | `/api/analyze/suggestion-chat` | No | `{ paragraphText, suggestion, messages, preferences? }` → `{ reply, mock }` |
 | `GET` | `/api/preferences` | Yes | → `{ preferences: AnalysisPreferences }` |
 | `PATCH` | `/api/preferences` | Yes | `AnalysisPreferences` → `{ preferences: AnalysisPreferences }` |
 | `GET` | `/api/entries` | Yes | → `{ entries: JournalEntryListItem[] }` |
@@ -278,7 +295,7 @@ Scores are stored 0–100 in the DB and AI schema. `ScoreRing.scoreToDisplay()` 
 | `PATCH` | `/api/admin/feedback/:id` | Admin | `{ status?, internalNotes? }` → `{ feedback: AdminFeedbackRow }` |
 | `POST` | `/api/facebook/data-deletion` | No (Meta signed) | form `signed_request` → `{ url, confirmation_code }` |
 
-Client wrappers in `lib/api.ts`: `analyzeText`, `analyzeEntryReview`, `fetchPreferences`, `savePreferences`, `listEntries`, `fetchEntry`, `saveEntry`, `deleteEntry`, `fetchAdminStats`, `fetchAdminUsers`, `submitFeedback`, `fetchAdminFeedback`, `updateAdminFeedback`.
+Client wrappers in `lib/api.ts`: `analyzeText`, `analyzeEntryReview`, `askAboutSuggestion`, `fetchPreferences`, `savePreferences`, `listEntries`, `fetchEntry`, `saveEntry`, `deleteEntry`, `fetchAdminStats`, `fetchAdminUsers`, `submitFeedback`, `fetchAdminFeedback`, `updateAdminFeedback`.
 
 Errors return `{ error: string }` with 4xx/5xx. Client code throws `ApiError` from `lib/api.ts`.
 
@@ -300,7 +317,7 @@ See `.env.example`. Required for full functionality:
 | `ADMIN_EMAILS` | Comma-separated emails allowed to access `/admin` |
 | `FACEBOOK_APP_SECRET` | Meta App Secret; verify data deletion signed_request |
 
-Without an AI key, `/api/analyze` and `/api/analyze/review` return mock data (`mock: true`); UI shows a demo banner.
+Without an AI key, `/api/analyze`, `/api/analyze/review`, and `/api/analyze/suggestion-chat` return mock data (`mock: true`); UI shows a demo banner.
 
 ## UI layout
 
@@ -344,8 +361,8 @@ Use lowercase kebab-case for the slug (2–5 words from the ticket title). One t
 
 ### Avoid
 
-- Adding auth to `/api/analyze` or `/api/analyze/review` unless product requirements change (currently public for simpler demo; preferences are optional in the request body).
-- Storing analysis only at entry level — analysis lives on each text block’s `journal_paragraphs.analysis` JSONB column.
+- Adding auth to `/api/analyze`, `/api/analyze/review`, or `/api/analyze/suggestion-chat` unless product requirements change (currently public for simpler demo; preferences are optional in the request body).
+- Storing analysis only at entry level — analysis lives on each text block’s `journal_paragraphs.analysis` JSONB column (including per-suggestion `discussion`).
 - Persisting signed image URLs — store `image_path` only; sign on read.
 - Exposing `SUPABASE_SERVICE_ROLE_KEY` to the client (no `NEXT_PUBLIC_` prefix).
 
@@ -354,6 +371,7 @@ Use lowercase kebab-case for the slug (2–5 words from the ticket title). One t
 - `MAX_ENTRIES_PER_USER = 50` in `entries-db.ts`
 - Analyze text limit: 5000 characters in `api/analyze/route.ts`
 - Entry review limit: 20,000 characters in `api/analyze/review/route.ts`
+- Suggestion chat: 1000 chars/message, 20 messages/thread in `suggestion-discussion.ts`
 - Learning goal (`customNote`) limit: 300 characters in `analysis-preferences.ts`
 - Auto-save debounce: 10 seconds in `hooks/useAutoSaveEntry.ts`
 - Default title: `formatTodayDisplay()` → e.g. "Jun 24, 2026"
@@ -372,6 +390,7 @@ Use lowercase kebab-case for the slug (2–5 words from the ticket title). One t
 | Facebook data deletion callback | `app/api/facebook/data-deletion/`, `facebook-signed-request.ts`, `data-deletion.ts`, `app/deletion/[code]/`, `schema.sql` |
 | Editor behavior | `ParagraphEditor.tsx`, `ParagraphBlock.tsx`, `JournalApp.tsx`, `hooks/useAutoSaveEntry.ts` |
 | Inline paragraph feedback | `ParagraphBlock.tsx`, `SuggestionRow.tsx` |
+| Ask about a suggestion | `SuggestionRow.tsx`, `JournalApp.tsx`, `ai.ts` (`discussSuggestion`), `app/api/analyze/suggestion-chat/`, `suggestion-discussion.ts` |
 | Full-entry review drawer | `FeedbackDrawer.tsx`, `ScoreRing.tsx`, `JournalApp.tsx` |
 | Entries drawer | `EntryDrawer.tsx`, `entry-utils.groupEntriesByMonth()`, `entry-utils.toListItem()` |
 | Topbar / mobile actions menu | `TopActionsMenu.tsx`, `JournalApp.tsx`, `globals.css` (`.topbar`, `.top-actions`) |

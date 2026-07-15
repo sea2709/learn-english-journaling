@@ -17,6 +17,12 @@ interface ParagraphBlockProps {
   onSelect: (id: string) => void;
   onAnalyze: (id: string) => void;
   onSplit: (id: string, cursorPos: number) => void;
+  onAskSuggestion: (
+    paragraphId: string,
+    suggestionId: string,
+    question: string
+  ) => Promise<void>;
+  askingSuggestionId: string | null;
 }
 
 export function ParagraphBlock({
@@ -31,6 +37,8 @@ export function ParagraphBlock({
   onSelect,
   onAnalyze,
   onSplit,
+  onAskSuggestion,
+  askingSuggestionId,
 }: ParagraphBlockProps) {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const [notesExpanded, setNotesExpanded] = useState(true);
@@ -164,10 +172,14 @@ export function ParagraphBlock({
               <p className="mb-2 font-mono text-sm leading-relaxed text-ink-600">
                 {paragraph.analysis.summary}
               </p>
-              {paragraph.analysis.suggestions.map((suggestion, i) => (
+              {paragraph.analysis.suggestions.map((suggestion) => (
                 <SuggestionRow
-                  key={`${suggestion.original}-${i}`}
+                  key={suggestion.id}
                   suggestion={suggestion}
+                  asking={askingSuggestionId === suggestion.id}
+                  onAsk={(question) =>
+                    onAskSuggestion(paragraph.id, suggestion.id, question)
+                  }
                 />
               ))}
             </div>

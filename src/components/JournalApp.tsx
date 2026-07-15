@@ -17,6 +17,7 @@ import {
   analyzeEntryReview,
   analyzeText,
   ApiError,
+  askAboutSuggestion,
   deleteEntry,
   fetchEntry,
   fetchPreferences,
@@ -24,6 +25,7 @@ import {
   savePreferences,
   submitFeedback,
 } from "@/lib/api";
+import { MAX_SUGGESTION_DISCUSSION_MESSAGES } from "@/lib/suggestion-discussion";
 import {
   canSaveEntry,
   createParagraph,
@@ -65,6 +67,9 @@ export function JournalApp({ user }: { user: User }) {
   const [analyzingParagraphId, setAnalyzingParagraphId] = useState<
     string | null
   >(null);
+  const [askingSuggestionId, setAskingSuggestionId] = useState<string | null>(
+    null
+  );
   const [entries, setEntries] = useState<JournalEntryListItem[]>([]);
   const [entriesLoading, setEntriesLoading] = useState(true);
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -308,6 +313,90 @@ export function JournalApp({ user }: { user: User }) {
       setMessage({ type: "error", text });
     } finally {
       setAnalyzingParagraphId(null);
+    }
+  };
+
+  const handleAskSuggestion = async (
+    paragraphId: string,
+    suggestionId: string,
+    question: string
+  ) => {
+    const paragraph = blocks.find(
+      (block): block is JournalParagraph =>
+        block.id === paragraphId && isTextBlock(block)
+    );
+    const suggestion = paragraph?.analysis?.suggestions.find(
+      (item) => item.id === suggestionId
+    );
+
+    if (!paragraph?.analysis || !suggestion) {
+      throw new Error("Suggestion not found. Try Check again.");
+    }
+
+    const discussion = suggestion.discussion ?? [];
+    if (discussion.length + 2 > MAX_SUGGESTION_DISCUSSION_MESSAGES) {
+      throw new Error(
+        `This conversation has reached the limit of ${MAX_SUGGESTION_DISCUSSION_MESSAGES} messages.`
+      );
+    }
+
+    const messages = [
+      ...discussion,
+      { role: "user" as const, content: question },
+    ];
+
+    setAskingSuggestionId(suggestionId);
+    setMessage(null);
+
+    try {
+      const { reply, mock } = await askAboutSuggestion({
+        paragraphText: paragraph.analyzedText ?? paragraph.text.trim(),
+        suggestion: {
+          id: suggestion.id,
+          category: suggestion.category,
+          original: suggestion.original,
+          suggestion: suggestion.suggestion,
+          explanation: suggestion.explanation,
+        },
+        messages,
+        preferences: analysisPreferences,
+      });
+      setMockMode(mock);
+
+      const nextDiscussion = [
+        ...messages,
+        { role: "assistant" as const, content: reply },
+      ];
+
+      setBlocks((prev) =>
+        prev.map((block) => {
+          if (block.type !== "text" || block.id !== paragraphId || !block.analysis) {
+            return block;
+          }
+
+          return {
+            ...block,
+            analysis: {
+              ...block.analysis,
+              suggestions: block.analysis.suggestions.map((item) =>
+                item.id === suggestionId
+                  ? { ...item, discussion: nextDiscussion }
+                  : item
+              ),
+            },
+          };
+        })
+      );
+    } catch (error) {
+      const text =
+        error instanceof ApiError
+          ? error.message
+          : error instanceof Error
+            ? error.message
+            : "Failed to get a reply.";
+      throw new Error(text);
+    } finally {
+      setAskingSuggestionId(null);
     }
   };
 
@@ -567,6 +656,8 @@ export function JournalApp({ user }: { user: User }) {
           onBlocksChange={handleBlocksChange}
           onActiveBlockChange={setActiveBlockId}
           onAnalyzeParagraph={handleAnalyzeParagraph}
+          onAskSuggestion={handleAskSuggestion}
+          askingSuggestionId={askingSuggestionId}
           onError={(text) => setMessage({ type: "error", text })}
         />
 

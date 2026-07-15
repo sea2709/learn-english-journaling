@@ -44,7 +44,22 @@ function mapBlockFromDb(paragraph: DbParagraph): EntryBlock {
     id: paragraph.id,
     text: paragraph.text,
     analyzedText: paragraph.analyzed_text,
-    analysis: paragraph.analysis,
+    analysis: ensureSuggestionIds(paragraph.analysis),
+  };
+}
+
+/** Backfill ids for analysis loaded from older rows that predate suggestion ids. */
+function ensureSuggestionIds(
+  analysis: AnalysisResult | null
+): AnalysisResult | null {
+  if (!analysis) return null;
+
+  return {
+    ...analysis,
+    suggestions: analysis.suggestions.map((suggestion) => ({
+      ...suggestion,
+      id: suggestion.id || crypto.randomUUID(),
+    })),
   };
 }
 
@@ -81,8 +96,8 @@ function mapBlockToDb(entryId: string, block: EntryBlock, order: number) {
     entry_id: entryId,
     order,
     text: block.text,
-    analyzed_text: null,
-    analysis: null,
+    analyzed_text: block.analyzedText,
+    analysis: block.analysis,
     block_type: "text" as const,
     image_path: null,
   };

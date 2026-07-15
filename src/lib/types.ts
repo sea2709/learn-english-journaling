@@ -13,11 +13,20 @@ export interface AnalysisPreferences {
   customNote?: string;
 }
 
+export interface SuggestionMessage {
+  role: "user" | "assistant";
+  content: string;
+}
+
 export interface Suggestion {
+  /** Assigned by the app after analysis; not produced by the model. */
+  id: string;
   category: SuggestionCategory;
   original: string;
   suggestion: string;
   explanation: string;
+  /** Per-suggestion follow-up chat; cleared when the paragraph is re-Checked. */
+  discussion?: SuggestionMessage[];
 }
 
 export interface AnalysisResult {

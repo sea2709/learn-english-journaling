@@ -102,6 +102,37 @@ export function ParagraphEditor({
     });
   };
 
+  const handleRemoveEmptyParagraph = (id: string) => {
+    const index = blocks.findIndex((block) => block.id === id);
+    if (index === -1) return;
+
+    const block = blocks[index];
+    if (block.type !== "text" || block.text !== "") return;
+
+    // Keep at least one block so the editor never goes blank.
+    if (blocks.length === 1) return;
+
+    const next = blocks.filter((item) => item.id !== id);
+    const focusTarget = next[Math.max(0, index - 1)] ?? next[0];
+    if (!focusTarget) return;
+
+    onBlocksChange(next);
+    onActiveBlockChange(focusTarget.id);
+
+    if (focusTarget.type === "text") {
+      requestAnimationFrame(() => {
+        const wrapper = document.querySelector(
+          `[data-block-id="${focusTarget.id}"]`
+        );
+        const el = wrapper?.querySelector("textarea");
+        if (!el) return;
+        el.focus();
+        const cursor = el.value.length;
+        el.setSelectionRange(cursor, cursor);
+      });
+    }
+  };
+
   const handleRemoveImage = async (id: string) => {
     const block = blocks.find((item) => item.id === id);
     if (!block || block.type !== "image") return;
@@ -170,6 +201,7 @@ export function ParagraphEditor({
               onSelect={onActiveBlockChange}
               onAnalyze={onAnalyzeParagraph}
               onSplit={handleSplit}
+              onRemoveEmpty={handleRemoveEmptyParagraph}
               onAskSuggestion={onAskSuggestion}
               askingSuggestionId={askingSuggestionId}
             />
@@ -217,7 +249,8 @@ export function ParagraphEditor({
           }}
         />
         <p className="ml-3 hidden font-sans text-sm text-ink-400 sm:inline">
-          Enter — new paragraph · Ctrl+Enter — check paragraph
+          Enter — new paragraph · Backspace on empty — remove · Ctrl+Enter —
+          check paragraph
         </p>
       </div>
     </div>

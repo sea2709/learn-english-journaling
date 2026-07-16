@@ -255,8 +255,7 @@ export function ParagraphEditor({
           }}
         />
         <p className="ml-3 hidden font-sans text-sm text-ink-400 sm:inline">
-          Enter — new paragraph · Backspace on empty — remove · Ctrl+Enter —
-          check paragraph
+          Enter — new paragraph · Ctrl+Enter — check paragraph
         </p>
       </div>
     </div>

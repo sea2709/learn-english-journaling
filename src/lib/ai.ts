@@ -387,3 +387,84 @@ export function getMockSuggestionReply(
 ): string {
   return `Demo reply: "${suggestion.original}" → "${suggestion.suggestion}" is a useful change because it sounds more natural in everyday English. Configure GOOGLE_GENERATIVE_AI_API_KEY in .env.local for real coaching answers.`;
 }
+
+function buildParagraphDiscussionPrompt(
+  paragraphText: string,
+  analysis: AnalysisResult | null | undefined,
+  preferences: AnalysisPreferences
+): string {
+  const customNote = preferences.customNote
+    ? `\nThe learner's goal: ${preferences.customNote}`
+    : "";
+
+  let analysisContext = "";
+  if (analysis) {
+    const suggestionLines = analysis.suggestions
+      .slice(0, 8)
+      .map(
+        (item) =>
+          `- [${item.category}] "${item.original}" → "${item.suggestion}": ${item.explanation}`
+      )
+      .join("\n");
+
+    analysisContext = `
+
+Optional Check notes for this paragraph (use when relevant; do not invent extras):
+Tone: ${analysis.tone}
+Grammar score: ${analysis.grammarScore}/100
+Summary: ${analysis.summary}
+Polished version:
+"""
+${analysis.correctedText}
+"""
+Suggestions:
+${suggestionLines || "(none)"}`;
+  }
+
+  return `You are an expert English language coach helping a non-native speaker improve one journal paragraph.
+
+Answer questions about the whole paragraph: meaning, clarity, tone, structure, vocabulary, or how to improve it. Be concise (a few short paragraphs at most), encouraging, and precise. Stay focused on this paragraph. Do not invent unrelated corrections unless the learner asks.
+
+Paragraph the learner wrote:
+"""
+${paragraphText}
+"""${analysisContext}${customNote}`;
+}
+
+export async function discussParagraph(params: {
+  paragraphText: string;
+  analysis?: AnalysisResult | null;
+  messages: SuggestionMessage[];
+  preferences?: AnalysisPreferences;
+}): Promise<string> {
+  if (!isAiConfigured()) {
+    throw new Error(
+      "AI provider is not configured. Add GOOGLE_GENERATIVE_AI_API_KEY to your .env.local file."
+    );
+  }
+
+  const preferences = params.preferences ?? DEFAULT_ANALYSIS_PREFERENCES;
+  const { text } = await generateText({
+    model: getModel(),
+    system: buildParagraphDiscussionPrompt(
+      params.paragraphText,
+      params.analysis,
+      preferences
+    ),
+    messages: params.messages.map((message) => ({
+      role: message.role,
+      content: message.content,
+    })),
+    temperature: 0.5,
+  });
+
+  return text.trim();
+}
+
+export function getMockParagraphReply(paragraphText: string): string {
+  const preview =
+    paragraphText.length > 80
+      ? `${paragraphText.slice(0, 77).trimEnd()}…`
+      : paragraphText;
+  return `Demo reply: Your paragraph ("${preview}") is a good place to practice clear, natural English. Ask about tone, word choice, or how to rewrite a sentence. Configure GOOGLE_GENERATIVE_AI_API_KEY in .env.local for real coaching answers.`;
+}

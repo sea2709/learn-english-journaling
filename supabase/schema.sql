@@ -17,6 +17,7 @@ create table if not exists public.journal_paragraphs (
   text text not null default '',
   analyzed_text text,
   analysis jsonb,
+  discussion jsonb,
   block_type text not null default 'text',
   image_path text,
   created_at timestamptz not null default now(),
@@ -36,6 +37,9 @@ alter table public.journal_paragraphs
 
 alter table public.journal_paragraphs
   add column if not exists image_path text;
+
+alter table public.journal_paragraphs
+  add column if not exists discussion jsonb;
 
 do $$
 begin

@@ -79,6 +79,21 @@ export async function askAboutSuggestion(params: {
   return parseResponse(response);
 }
 
+export async function askAboutParagraph(params: {
+  paragraphText: string;
+  analysis?: AnalysisResult | null;
+  messages: SuggestionMessage[];
+  preferences?: AnalysisPreferences;
+}): Promise<{ reply: string; mock: boolean }> {
+  const response = await fetch("/api/analyze/paragraph-chat", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(params),
+  });
+
+  return parseResponse(response);
+}
+
 export async function fetchPreferences(): Promise<AnalysisPreferences> {
   const response = await fetch("/api/preferences");
   const data = await parseResponse<{ preferences: AnalysisPreferences }>(

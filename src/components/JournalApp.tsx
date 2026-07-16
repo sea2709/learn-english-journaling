@@ -18,6 +18,7 @@ import {
   analyzeEntryReview,
   analyzeText,
   ApiError,
+  askAboutParagraph,
   askAboutSuggestion,
   deleteEntry,
   fetchEntry,
@@ -70,6 +71,9 @@ export function JournalApp({ user }: { user: User }) {
     string | null
   >(null);
   const [askingSuggestionId, setAskingSuggestionId] = useState<string | null>(
+    null
+  );
+  const [askingParagraphId, setAskingParagraphId] = useState<string | null>(
     null
   );
   const [entries, setEntries] = useState<JournalEntryListItem[]>([]);
@@ -451,6 +455,68 @@ export function JournalApp({ user }: { user: User }) {
     }
   };
 
+  const handleAskParagraph = async (
+    paragraphId: string,
+    question: string
+  ) => {
+    const paragraph = blocks.find(
+      (block): block is JournalParagraph =>
+        block.id === paragraphId && isTextBlock(block)
+    );
+
+    if (!paragraph?.text.trim()) {
+      throw new Error("Write something in the paragraph first.");
+    }
+
+    const discussion = paragraph.discussion ?? [];
+    if (discussion.length + 2 > MAX_SUGGESTION_DISCUSSION_MESSAGES) {
+      throw new Error(
+        `This conversation has reached the limit of ${MAX_SUGGESTION_DISCUSSION_MESSAGES} messages.`
+      );
+    }
+
+    const messages = [
+      ...discussion,
+      { role: "user" as const, content: question },
+    ];
+
+    setAskingParagraphId(paragraphId);
+    setMessage(null);
+
+    try {
+      const { reply, mock } = await askAboutParagraph({
+        paragraphText: paragraph.text.trim(),
+        analysis: paragraph.analysis,
+        messages,
+        preferences: analysisPreferences,
+      });
+      setMockMode(mock);
+
+      const nextDiscussion = [
+        ...messages,
+        { role: "assistant" as const, content: reply },
+      ];
+
+      setBlocks((prev) =>
+        prev.map((block) =>
+          block.type === "text" && block.id === paragraphId
+            ? { ...block, discussion: nextDiscussion }
+            : block
+        )
+      );
+    } catch (error) {
+      const text =
+        error instanceof ApiError
+          ? error.message
+          : error instanceof Error
+            ? error.message
+            : "Failed to get a reply.";
+      throw new Error(text);
+    } finally {
+      setAskingParagraphId(null);
+    }
+  };
+
   const handleRequestReview = async () => {
     const text = getEntryText(blocks);
     if (!text) {
@@ -697,6 +763,8 @@ export function JournalApp({ user }: { user: User }) {
           onAnalyzeParagraph={handleAnalyzeParagraph}
           onAskSuggestion={handleAskSuggestion}
           askingSuggestionId={askingSuggestionId}
+          onAskParagraph={handleAskParagraph}
+          askingParagraphId={askingParagraphId}
           onError={(text) => setMessage({ type: "error", text })}
         />
 

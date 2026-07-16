@@ -6,6 +6,7 @@ import type {
   EntryBlock,
   JournalEntryListItem,
   StoredJournalEntry,
+  SuggestionMessage,
 } from "@/lib/types";
 
 const MAX_ENTRIES_PER_USER = 50;
@@ -17,6 +18,7 @@ type DbParagraph = {
   text: string;
   analyzed_text: string | null;
   analysis: AnalysisResult | null;
+  discussion: SuggestionMessage[] | null;
   block_type: "text" | "image" | null;
   image_path: string | null;
 };
@@ -45,6 +47,7 @@ function mapBlockFromDb(paragraph: DbParagraph): EntryBlock {
     text: paragraph.text,
     analyzedText: paragraph.analyzed_text,
     analysis: ensureSuggestionIds(paragraph.analysis),
+    discussion: paragraph.discussion ?? undefined,
   };
 }
 
@@ -86,6 +89,7 @@ function mapBlockToDb(entryId: string, block: EntryBlock, order: number) {
       text: "",
       analyzed_text: null,
       analysis: null,
+      discussion: null,
       block_type: "image" as const,
       image_path: block.path,
     };
@@ -98,6 +102,7 @@ function mapBlockToDb(entryId: string, block: EntryBlock, order: number) {
     text: block.text,
     analyzed_text: block.analyzedText,
     analysis: block.analysis,
+    discussion: block.discussion ?? null,
     block_type: "text" as const,
     image_path: null,
   };

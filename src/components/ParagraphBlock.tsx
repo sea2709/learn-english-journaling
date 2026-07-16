@@ -17,6 +17,7 @@ interface ParagraphBlockProps {
   onSelect: (id: string) => void;
   onAnalyze: (id: string) => void;
   onSplit: (id: string, cursorPos: number) => void;
+  onRemoveEmpty: (id: string) => void;
   onAskSuggestion: (
     paragraphId: string,
     suggestionId: string,
@@ -37,6 +38,7 @@ export function ParagraphBlock({
   onSelect,
   onAnalyze,
   onSplit,
+  onRemoveEmpty,
   onAskSuggestion,
   askingSuggestionId,
 }: ParagraphBlockProps) {
@@ -73,6 +75,17 @@ export function ParagraphBlock({
       e.preventDefault();
       const el = e.currentTarget;
       onSplit(paragraph.id, el.selectionStart);
+      return;
+    }
+
+    if (
+      e.key === "Backspace" &&
+      e.currentTarget.selectionStart === 0 &&
+      e.currentTarget.selectionEnd === 0 &&
+      paragraph.text === ""
+    ) {
+      e.preventDefault();
+      onRemoveEmpty(paragraph.id);
     }
   };
 

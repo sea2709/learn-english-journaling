@@ -31,6 +31,8 @@ interface ParagraphEditorProps {
     question: string
   ) => Promise<void>;
   askingSuggestionId: string | null;
+  onAskParagraph: (paragraphId: string, question: string) => Promise<void>;
+  askingParagraphId: string | null;
   onError: (message: string) => void;
 }
 
@@ -47,6 +49,8 @@ export function ParagraphEditor({
   onAnalyzeParagraph,
   onAskSuggestion,
   askingSuggestionId,
+  onAskParagraph,
+  askingParagraphId,
   onError,
 }: ParagraphEditorProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -204,6 +208,8 @@ export function ParagraphEditor({
               onRemoveEmpty={handleRemoveEmptyParagraph}
               onAskSuggestion={onAskSuggestion}
               askingSuggestionId={askingSuggestionId}
+              onAskParagraph={onAskParagraph}
+              askingParagraphId={askingParagraphId}
             />
           ) : (
             <ImageBlock

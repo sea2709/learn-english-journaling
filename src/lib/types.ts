@@ -46,6 +46,8 @@ export interface JournalParagraph {
   text: string;
   analysis: AnalysisResult | null;
   analyzedText: string | null;
+  /** Paragraph-level follow-up chat; persists across re-Check. */
+  discussion?: SuggestionMessage[];
 }
 
 export interface JournalImageBlock {

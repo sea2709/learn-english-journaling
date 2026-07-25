@@ -3,7 +3,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { groupEntriesByMonth } from "@/lib/entry-utils";
 import type { JournalEntryListItem } from "@/lib/types";
-import { scoreToDisplay } from "./ScoreRing";
 
 interface EntryDrawerProps {
   open: boolean;
@@ -16,16 +15,6 @@ interface EntryDrawerProps {
   onClose: () => void;
   onNewEntry: () => void;
   onDelete: (entry: JournalEntryListItem) => void;
-}
-
-function formatDate(dateStr: string) {
-  if (!dateStr) return "No date";
-  const date = new Date(dateStr + "T12:00:00");
-  return date.toLocaleDateString("en-US", {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-  });
 }
 
 function MonthChevron({ expanded }: { expanded: boolean }) {
@@ -232,37 +221,11 @@ export function EntryDrawer({
                                   onSelect(entry);
                                   closeDrawer();
                                 }}
-                                className="min-w-0 flex-1 rounded-lg px-3 py-3 text-left"
+                                className="min-w-0 flex-1 rounded-lg px-3 py-2.5 text-left"
                               >
                                 <p className="truncate font-display text-sm font-medium text-ink-900">
                                   {entry.title}
                                 </p>
-                                <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-0.5 font-sans text-xs text-ink-500">
-                                  <span>{formatDate(entry.date)}</span>
-                                  <span>·</span>
-                                  <span>
-                                    {entry.paragraphCount}{" "}
-                                    {entry.paragraphCount === 1
-                                      ? "para"
-                                      : "paras"}
-                                  </span>
-                                  {entry.grammarScore != null && (
-                                    <>
-                                      <span>·</span>
-                                      <span>
-                                        {scoreToDisplay(entry.grammarScore)}/10
-                                      </span>
-                                    </>
-                                  )}
-                                  {entry.tone && (
-                                    <>
-                                      <span>·</span>
-                                      <span className="capitalize">
-                                        {entry.tone}
-                                      </span>
-                                    </>
-                                  )}
-                                </div>
                               </button>
 
                               {confirmDeleteId === entry.id ? (

@@ -682,13 +682,12 @@ export function JournalApp({ user }: { user: User }) {
               setEntriesOpen(true);
             }}
             className="feedback-btn alt"
-            aria-label={`Entries, ${entries.length} saved`}
+            aria-label="Entries"
           >
             <span className="pen" aria-hidden>
               ▤
             </span>
             <span className="btn-label">Entries</span>
-            <span className="n">{entries.length}</span>
           </button>
         </div>
         <TopActionsMenu

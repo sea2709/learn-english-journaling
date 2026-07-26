@@ -56,13 +56,6 @@ function getEntryText(blocks: EntryBlock[]): string {
     .join("\n\n");
 }
 
-function countInlineNotes(blocks: EntryBlock[]): number {
-  return getTextBlocks(blocks).reduce((total, p) => {
-    if (!p.analysis) return total;
-    return total + p.analysis.suggestions.length;
-  }, 0);
-}
-
 export function JournalApp({ user }: { user: User }) {
   const [title, setTitle] = useState(() => formatTodayDisplay());
   const [blocks, setBlocks] = useState<EntryBlock[]>(() => [createParagraph()]);
@@ -117,11 +110,6 @@ export function JournalApp({ user }: { user: User }) {
   const focusSummary = useMemo(
     () => formatFocusAreasSummary(analysisPreferences.focusAreas),
     [analysisPreferences.focusAreas]
-  );
-
-  const inlineNoteCount = useMemo(
-    () => countInlineNotes(blocks),
-    [blocks]
   );
 
   const resolvedActiveBlockId = activeBlockId ?? blocks[0]?.id ?? null;
@@ -706,7 +694,6 @@ export function JournalApp({ user }: { user: User }) {
             setPreferencesOpen(true);
           }}
           onOpenFeedback={handleOpenFeedback}
-          inlineNoteCount={inlineNoteCount}
           onMenuOpenChange={setActionsMenuOpen}
         />
       </header>

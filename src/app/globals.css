@@ -186,21 +186,6 @@
     line-height: 1;
   }
 
-  .top-actions-dropdown-badge {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    min-width: 1rem;
-    height: 1rem;
-    margin-left: auto;
-    padding: 0 0.25rem;
-    border-radius: 9999px;
-    background-color: #b0432e;
-    font-size: 0.625rem;
-    font-weight: 500;
-    color: #fff;
-  }
-
   .brand {
     display: flex;
     align-items: center;
@@ -298,21 +283,6 @@
     .btn-label {
       display: inline;
     }
-  }
-
-  .feedback-btn .n {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    min-width: 1.125rem;
-    height: 1.125rem;
-    padding: 0 0.3125rem;
-    border-radius: 9999px;
-    background-color: #b0432e;
-    font-size: 0.625rem;
-    font-weight: 600;
-    line-height: 1;
-    color: #fff;
   }
 
   .writing-dim {

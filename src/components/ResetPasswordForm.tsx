@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import { Spinner } from "./Spinner";
 
 export function ResetPasswordForm() {
   const router = useRouter();
@@ -78,7 +79,8 @@ export function ResetPasswordForm() {
 
   if (checkingSession) {
     return (
-      <div className="flex min-h-screen items-center justify-center paper-texture px-4 py-12">
+      <div className="flex min-h-screen flex-col items-center justify-center gap-3 paper-texture px-4 py-12">
+        <Spinner label="Loading" />
         <p className="text-sm text-ink-500">Loading…</p>
       </div>
     );
@@ -167,8 +169,10 @@ export function ResetPasswordForm() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full rounded-full bg-ink-900 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-ink-800 disabled:cursor-not-allowed disabled:opacity-60"
+              aria-busy={loading}
+              className="inline-flex w-full items-center justify-center gap-2 rounded-full bg-ink-900 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-ink-800 disabled:cursor-not-allowed disabled:opacity-60"
             >
+              {loading && <Spinner size="sm" tone="inverse" />}
               {loading ? "Updating…" : "Update password"}
             </button>
           </form>

@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { SocialAuthButtons } from "./SocialAuthButtons";
+import { Spinner } from "./Spinner";
 
 type AuthMode = "login" | "register";
 type AuthStep = "choose" | "email" | "forgot";
@@ -269,8 +270,10 @@ export function AuthForm() {
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full rounded-full bg-ink-900 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-ink-800 disabled:cursor-not-allowed disabled:opacity-60"
+                aria-busy={loading}
+                className="inline-flex w-full items-center justify-center gap-2 rounded-full bg-ink-900 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-ink-800 disabled:cursor-not-allowed disabled:opacity-60"
               >
+                {loading && <Spinner size="sm" tone="inverse" />}
                 {loading ? "Sending link…" : "Send reset link"}
               </button>
             </form>
@@ -441,8 +444,10 @@ export function AuthForm() {
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full rounded-full bg-ink-900 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-ink-800 disabled:cursor-not-allowed disabled:opacity-60"
+                aria-busy={loading}
+                className="inline-flex w-full items-center justify-center gap-2 rounded-full bg-ink-900 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-ink-800 disabled:cursor-not-allowed disabled:opacity-60"
               >
+                {loading && <Spinner size="sm" tone="inverse" />}
                 {loading
                   ? mode === "register"
                     ? "Creating account…"

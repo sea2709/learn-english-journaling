@@ -14,7 +14,6 @@ interface TopActionsMenuProps {
   onSendFeedback: () => void;
   onCheckFocus: () => void;
   onOpenFeedback: () => void;
-  inlineNoteCount: number;
   onMenuOpenChange?: (open: boolean) => void;
 }
 
@@ -105,7 +104,6 @@ export function TopActionsMenu({
   onSendFeedback,
   onCheckFocus,
   onOpenFeedback,
-  inlineNoteCount,
   onMenuOpenChange,
 }: TopActionsMenuProps) {
   const [menuOpen, setMenuOpen] = useState(false);
@@ -262,17 +260,12 @@ export function TopActionsMenu({
         type="button"
         onClick={onOpenFeedback}
         className="feedback-btn"
-        aria-label={
-          inlineNoteCount > 0
-            ? `Feedback, ${inlineNoteCount} notes`
-            : "Feedback"
-        }
+        aria-label="Feedback"
       >
         <span className="pen" aria-hidden>
           ✎
         </span>
         <span className="btn-label">Feedback</span>
-        {inlineNoteCount > 0 && <span className="n">{inlineNoteCount}</span>}
       </button>
     </>
   );
@@ -354,11 +347,6 @@ export function TopActionsMenu({
                   ✎
                 </span>
                 Feedback
-                {inlineNoteCount > 0 && (
-                  <span className="top-actions-dropdown-badge">
-                    {inlineNoteCount}
-                  </span>
-                )}
               </button>
             </div>
           )}

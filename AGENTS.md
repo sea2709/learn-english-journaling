@@ -52,6 +52,7 @@ src/
 │   ├── AuthGate.tsx                # Session gate → AuthForm or JournalApp
 │   ├── AuthForm.tsx                # Email + social sign-in + forgot password
 │   ├── ResetPasswordForm.tsx       # New password after recovery link
+│   ├── ChangePasswordForm.tsx      # Signed-in email users: change password drawer
 │   ├── SocialAuthButtons.tsx       # Google / Facebook OAuth
 │   ├── JournalApp.tsx              # Main app shell & state orchestration
 │   ├── TopActionsMenu.tsx          # Topbar actions; hamburger menu below 640px
@@ -106,6 +107,7 @@ flowchart TB
     JournalApp --> FeedbackDrawer
     JournalApp --> FeedbackForm
     JournalApp --> CheckFocusSettings
+    JournalApp --> ChangePasswordForm
     JournalApp --> useAutoSave["hooks/useAutoSaveEntry"]
     ParagraphEditor --> ParagraphBlock
     ParagraphBlock --> SuggestionRow
@@ -205,7 +207,7 @@ The topbar feedback badge counts **paragraph-level** `suggestions.length`, not e
 
 1. On sign-in, `JournalApp` calls `fetchPreferences()` → `GET /api/preferences`.
 2. `getPreferencesForUser()` in `preferences-db.ts` returns existing row or inserts defaults (`DEFAULT_ANALYSIS_PREFERENCES` from `analysis-preferences.ts`).
-3. User opens **Check focus** from the topbar → `CheckFocusSettings` overlay.
+3. User opens **Check focus** from the User menu → `CheckFocusSettings` overlay.
 4. User toggles focus areas (at least one required) and optionally sets a learning goal (≤ 300 chars).
 5. Save calls `savePreferences()` → `PATCH /api/preferences` → `upsertPreferencesForUser()`.
 6. Updated preferences are passed to subsequent paragraph checks and entry reviews.
@@ -226,6 +228,7 @@ The topbar feedback badge counts **paragraph-level** `suggestions.length`, not e
 - `AuthGate` subscribes to `supabase.auth.onAuthStateChange`.
 - Email: `signUp` / `signInWithPassword` in `AuthForm`.
 - Forgot password: `AuthForm` calls `resetPasswordForEmail` → recovery email → `/auth/callback?next=/auth/reset-password` → `ResetPasswordForm` calls `updateUser({ password })` → redirect `/`.
+- Change password (signed in): email-identity users open **Change password** from the User menu → `ChangePasswordForm` verifies via `signInWithPassword` with the current password, then `updateUser({ password })`.
 - OAuth: `signInWithOAuth` → provider → `/auth/callback` → `exchangeCodeForSession` → redirect `/`.
 - `proxy.ts` calls `updateSession()` from `lib/supabase/middleware.ts` to refresh cookies on every request.
 - API routes use **server** `createClient()` and reject unauthenticated entry and preferences requests with 401.
@@ -342,16 +345,17 @@ Centered single-column editor (`max-w-sheet`) with a sticky topbar and overlay d
 | Area | Component | Notes |
 |------|-----------|-------|
 | Topbar left | `JournalApp` | Brand title + **Entries** button (saved count badge) |
-| Topbar right | `TopActionsMenu` | Wide screens: inline New entry, Sign out, Send feedback, Check focus, Feedback (badge = inline note count). Below 640px: hamburger menu with the same actions |
+| Topbar right | `TopActionsMenu` | Wide screens: New entry, **User** menu (Sign out, Send feedback, Check focus, Change password for email users), Feedback. Below 640px: hamburger with the same actions (User items grouped under a User section) |
 | Center | Title + `ParagraphEditor` + save footer | Main writing area; per-paragraph feedback inline; active block shows focus summary; **Save** button and auto-save status in footer (not topbar) |
 | Left overlay | `EntryDrawer` | Past entries grouped by month; new entry, refresh, delete |
 | Right overlay | `FeedbackDrawer` | Full-entry AI review on demand; shows current focus summary |
 | Overlay | `CheckFocusSettings` | Focus-area toggles + optional learning goal |
+| Overlay | `ChangePasswordForm` | Email users: current + new password |
 | Overlay | `FeedbackForm` | Submit app feedback (bug / idea / other) |
 
 **Mobile editor:** no left notebook margin or dot below `sm`; writing area is full width. Notebook margin (`pl-14` + `.notebook-margin::before` dot) applies from `sm` up.
 
-Key CSS utilities in `globals.css`: `.topbar`, `.topbar-left`, `.top-actions`, `.feedback-btn`, `.pen`, `.lnk`, `.notebook-margin`, `.writing-dim`, `body.drawer-open` (scroll lock when entries, feedback, check-focus, or feedback-form overlay is open).
+Key CSS utilities in `globals.css`: `.topbar`, `.topbar-left`, `.top-actions`, `.feedback-btn`, `.pen`, `.lnk`, `.notebook-margin`, `.writing-dim`, `body.drawer-open` (scroll lock when entries, feedback, check-focus, change-password, or feedback-form overlay is open).
 
 ## Conventions for agents
 
@@ -402,7 +406,7 @@ Use lowercase kebab-case for the slug (2–5 words from the ticket title). One t
 | Add API endpoint | `src/app/api/...`, wrapper in `src/lib/api.ts` |
 | Change save/load logic | `src/lib/entries-db.ts`, `src/app/api/entries/` |
 | DB schema / RLS | `supabase/schema.sql` |
-| Auth providers / forms | `AuthForm.tsx`, `SocialAuthButtons.tsx`, `ResetPasswordForm.tsx`, Supabase dashboard |
+| Auth providers / forms | `AuthForm.tsx`, `SocialAuthButtons.tsx`, `ResetPasswordForm.tsx`, `ChangePasswordForm.tsx`, `TopActionsMenu.tsx`, `JournalApp.tsx`, Supabase dashboard |
 | Facebook data deletion callback | `app/api/facebook/data-deletion/`, `facebook-signed-request.ts`, `data-deletion.ts`, `app/deletion/[code]/`, `schema.sql` |
 | Editor behavior | `ParagraphEditor.tsx`, `ParagraphBlock.tsx`, `JournalApp.tsx`, `hooks/useAutoSaveEntry.ts` |
 | Inline paragraph feedback | `ParagraphBlock.tsx`, `SuggestionRow.tsx` |

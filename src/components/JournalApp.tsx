@@ -42,6 +42,8 @@ import {
   useAutoSaveEntry,
 } from "@/hooks/useAutoSaveEntry";
 import { createClient } from "@/lib/supabase/client";
+import { ChangePasswordForm } from "./ChangePasswordForm";
+import type { ChangePasswordPayload } from "./ChangePasswordForm";
 import { CheckFocusSettings } from "./CheckFocusSettings";
 import { EntryDrawer } from "./EntryDrawer";
 import { FeedbackDrawer } from "./FeedbackDrawer";
@@ -54,6 +56,11 @@ function getEntryText(blocks: EntryBlock[]): string {
     .map((p) => p.text.trim())
     .filter(Boolean)
     .join("\n\n");
+}
+
+function userCanChangePassword(user: User): boolean {
+  if (!user.email) return false;
+  return (user.identities ?? []).some((identity) => identity.provider === "email");
 }
 
 export function JournalApp({ user }: { user: User }) {
@@ -103,7 +110,15 @@ export function JournalApp({ user }: { user: User }) {
   const [feedbackFormSuccess, setFeedbackFormSuccess] = useState<string | null>(
     null
   );
+  const [changePasswordOpen, setChangePasswordOpen] = useState(false);
+  const [changePasswordSubmitting, setChangePasswordSubmitting] =
+    useState(false);
+  const [changePasswordError, setChangePasswordError] = useState<string | null>(
+    null
+  );
   const [actionsMenuOpen, setActionsMenuOpen] = useState(false);
+
+  const canChangePassword = userCanChangePassword(user);
 
   const entryId = selectedId ?? draftEntryId;
 
@@ -258,10 +273,18 @@ export function JournalApp({ user }: { user: User }) {
       feedbackOpen ||
       preferencesOpen ||
       feedbackFormOpen ||
+      changePasswordOpen ||
       actionsMenuOpen;
     document.body.classList.toggle("drawer-open", drawerOpen);
     return () => document.body.classList.remove("drawer-open");
-  }, [entriesOpen, feedbackOpen, preferencesOpen, feedbackFormOpen, actionsMenuOpen]);
+  }, [
+    entriesOpen,
+    feedbackOpen,
+    preferencesOpen,
+    feedbackFormOpen,
+    changePasswordOpen,
+    actionsMenuOpen,
+  ]);
 
   useEffect(() => {
     if (!entriesOpen || !entriesStale) return;
@@ -578,6 +601,59 @@ export function JournalApp({ user }: { user: User }) {
     }
   };
 
+  const handleChangePassword = async (payload: ChangePasswordPayload) => {
+    if (!user.email) {
+      setChangePasswordError("Account email is required to change password.");
+      return;
+    }
+
+    setChangePasswordSubmitting(true);
+    setChangePasswordError(null);
+
+    const supabase = createClient();
+
+    try {
+      const { error: verifyError } = await supabase.auth.signInWithPassword({
+        email: user.email,
+        password: payload.currentPassword,
+      });
+
+      if (verifyError) {
+        setChangePasswordError("Current password is incorrect.");
+        return;
+      }
+
+      const { error: updateError } = await supabase.auth.updateUser({
+        password: payload.newPassword,
+      });
+
+      if (updateError) {
+        const message = updateError.message.toLowerCase();
+        if (message.includes("same") || message.includes("different")) {
+          setChangePasswordError(
+            "New password must be different from the current one."
+          );
+        } else if (
+          message.includes("weak") ||
+          message.includes("least") ||
+          message.includes("characters")
+        ) {
+          setChangePasswordError("Password must be at least 8 characters.");
+        } else {
+          setChangePasswordError(updateError.message);
+        }
+        return;
+      }
+
+      setChangePasswordOpen(false);
+      setMessage({ type: "success", text: "Password updated." });
+    } catch {
+      setChangePasswordError("Something went wrong.");
+    } finally {
+      setChangePasswordSubmitting(false);
+    }
+  };
+
   const handleSave = async () => {
     if (!canSaveEntry(blocks)) {
       setMessage({
@@ -692,6 +768,11 @@ export function JournalApp({ user }: { user: User }) {
           onCheckFocus={() => {
             setPreferencesError(null);
             setPreferencesOpen(true);
+          }}
+          canChangePassword={canChangePassword}
+          onChangePassword={() => {
+            setChangePasswordError(null);
+            setChangePasswordOpen(true);
           }}
           onOpenFeedback={handleOpenFeedback}
           onMenuOpenChange={setActionsMenuOpen}
@@ -837,6 +918,17 @@ export function JournalApp({ user }: { user: User }) {
           setFeedbackFormSuccess(null);
         }}
         onSubmit={(payload) => void handleSubmitFeedback(payload)}
+      />
+
+      <ChangePasswordForm
+        open={changePasswordOpen}
+        submitting={changePasswordSubmitting}
+        error={changePasswordError}
+        onClose={() => {
+          setChangePasswordOpen(false);
+          setChangePasswordError(null);
+        }}
+        onSubmit={(payload) => void handleChangePassword(payload)}
       />
     </div>
   );

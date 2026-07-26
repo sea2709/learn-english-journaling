@@ -207,7 +207,7 @@ The topbar feedback badge counts **paragraph-level** `suggestions.length`, not e
 
 1. On sign-in, `JournalApp` calls `fetchPreferences()` → `GET /api/preferences`.
 2. `getPreferencesForUser()` in `preferences-db.ts` returns existing row or inserts defaults (`DEFAULT_ANALYSIS_PREFERENCES` from `analysis-preferences.ts`).
-3. User opens **Check focus** from the topbar → `CheckFocusSettings` overlay.
+3. User opens **Check focus** from the User menu → `CheckFocusSettings` overlay.
 4. User toggles focus areas (at least one required) and optionally sets a learning goal (≤ 300 chars).
 5. Save calls `savePreferences()` → `PATCH /api/preferences` → `upsertPreferencesForUser()`.
 6. Updated preferences are passed to subsequent paragraph checks and entry reviews.
@@ -228,7 +228,7 @@ The topbar feedback badge counts **paragraph-level** `suggestions.length`, not e
 - `AuthGate` subscribes to `supabase.auth.onAuthStateChange`.
 - Email: `signUp` / `signInWithPassword` in `AuthForm`.
 - Forgot password: `AuthForm` calls `resetPasswordForEmail` → recovery email → `/auth/callback?next=/auth/reset-password` → `ResetPasswordForm` calls `updateUser({ password })` → redirect `/`.
-- Change password (signed in): email-identity users open **Change password** from the topbar → `ChangePasswordForm` verifies via `signInWithPassword` with the current password, then `updateUser({ password })`.
+- Change password (signed in): email-identity users open **Change password** from the User menu → `ChangePasswordForm` verifies via `signInWithPassword` with the current password, then `updateUser({ password })`.
 - OAuth: `signInWithOAuth` → provider → `/auth/callback` → `exchangeCodeForSession` → redirect `/`.
 - `proxy.ts` calls `updateSession()` from `lib/supabase/middleware.ts` to refresh cookies on every request.
 - API routes use **server** `createClient()` and reject unauthenticated entry and preferences requests with 401.
@@ -345,7 +345,7 @@ Centered single-column editor (`max-w-sheet`) with a sticky topbar and overlay d
 | Area | Component | Notes |
 |------|-----------|-------|
 | Topbar left | `JournalApp` | Brand title + **Entries** button (saved count badge) |
-| Topbar right | `TopActionsMenu` | Wide screens: inline New entry, Sign out, Send feedback, Check focus, Change password (email users only), Feedback (badge = inline note count). Below 640px: hamburger menu with the same actions |
+| Topbar right | `TopActionsMenu` | Wide screens: New entry, **User** menu (Sign out, Send feedback, Check focus, Change password for email users), Feedback. Below 640px: hamburger with the same actions (User items grouped under a User section) |
 | Center | Title + `ParagraphEditor` + save footer | Main writing area; per-paragraph feedback inline; active block shows focus summary; **Save** button and auto-save status in footer (not topbar) |
 | Left overlay | `EntryDrawer` | Past entries grouped by month; new entry, refresh, delete |
 | Right overlay | `FeedbackDrawer` | Full-entry AI review on demand; shows current focus summary |

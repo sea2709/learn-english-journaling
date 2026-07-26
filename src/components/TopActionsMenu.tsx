@@ -100,6 +100,25 @@ function KeyIcon() {
   );
 }
 
+function UserIcon() {
+  return (
+    <svg
+      className="h-3.5 w-3.5"
+      fill="none"
+      viewBox="0 0 24 24"
+      stroke="currentColor"
+      strokeWidth={2}
+      aria-hidden
+    >
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        d="M15.75 6a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0ZM4.501 20.118a7.5 7.5 0 0 1 14.998 0A17.933 17.933 0 0 1 12 21.75c-2.676 0-5.216-.584-7.499-1.632Z"
+      />
+    </svg>
+  );
+}
+
 function HamburgerIcon() {
   return (
     <svg
@@ -119,6 +138,25 @@ function HamburgerIcon() {
   );
 }
 
+function ChevronIcon({ open }: { open: boolean }) {
+  return (
+    <svg
+      className={`h-3.5 w-3.5 transition-transform ${open ? "rotate-180" : ""}`}
+      fill="none"
+      viewBox="0 0 24 24"
+      stroke="currentColor"
+      strokeWidth={2}
+      aria-hidden
+    >
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        d="m19.5 8.25-7.5 7.5-7.5-7.5"
+      />
+    </svg>
+  );
+}
+
 export function TopActionsMenu({
   onNewEntry,
   onSignOut,
@@ -130,18 +168,30 @@ export function TopActionsMenu({
   onMenuOpenChange,
 }: TopActionsMenuProps) {
   const [menuOpen, setMenuOpen] = useState(false);
+  const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [compact, setCompact] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const measureRef = useRef<HTMLDivElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
 
-  const setOpen = useCallback(
-    (open: boolean) => {
-      setMenuOpen(open);
-      onMenuOpenChange?.(open);
-    },
-    [onMenuOpenChange]
-  );
+  useEffect(() => {
+    onMenuOpenChange?.(menuOpen || userMenuOpen);
+  }, [menuOpen, userMenuOpen, onMenuOpenChange]);
+
+  const setHamburgerOpen = (open: boolean) => {
+    setMenuOpen(open);
+    if (open) setUserMenuOpen(false);
+  };
+
+  const setUserOpen = (open: boolean) => {
+    setUserMenuOpen(open);
+    if (open) setMenuOpen(false);
+  };
+
+  const closeAll = useCallback(() => {
+    setMenuOpen(false);
+    setUserMenuOpen(false);
+  }, []);
 
   const checkCompact = useCallback(() => {
     if (window.matchMedia("(max-width: 639px)").matches) {
@@ -168,11 +218,12 @@ export function TopActionsMenu({
     }
 
     setCompact(shouldCompact);
-    if (!shouldCompact) {
+    if (shouldCompact) {
+      setUserMenuOpen(false);
+    } else {
       setMenuOpen(false);
-      onMenuOpenChange?.(false);
     }
-  }, [onMenuOpenChange]);
+  }, []);
 
   useLayoutEffect(() => {
     const frame = requestAnimationFrame(() => {
@@ -202,16 +253,16 @@ export function TopActionsMenu({
   }, [checkCompact]);
 
   useEffect(() => {
-    if (!menuOpen) return;
+    if (!menuOpen && !userMenuOpen) return;
 
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape") setOpen(false);
+      if (e.key === "Escape") closeAll();
     };
 
     const handlePointerDown = (e: MouseEvent | TouchEvent) => {
       const target = e.target as Node;
       if (menuRef.current?.contains(target)) return;
-      setOpen(false);
+      closeAll();
     };
 
     document.addEventListener("keydown", handleKeyDown);
@@ -223,12 +274,63 @@ export function TopActionsMenu({
       document.removeEventListener("mousedown", handlePointerDown);
       document.removeEventListener("touchstart", handlePointerDown);
     };
-  }, [menuOpen, setOpen]);
+  }, [menuOpen, userMenuOpen, closeAll]);
 
   const runAction = (action: () => void) => {
-    setOpen(false);
+    closeAll();
     action();
   };
+
+  const userMenuItems = (
+    <>
+      <button
+        type="button"
+        role="menuitem"
+        className="top-actions-dropdown-item"
+        onClick={() => runAction(() => void onSignOut())}
+      >
+        <span className="pen" aria-hidden>
+          <SignOutIcon />
+        </span>
+        Sign out
+      </button>
+      <button
+        type="button"
+        role="menuitem"
+        className="top-actions-dropdown-item"
+        onClick={() => runAction(onSendFeedback)}
+      >
+        <span className="pen" aria-hidden>
+          <FeedbackIcon />
+        </span>
+        Send feedback
+      </button>
+      <button
+        type="button"
+        role="menuitem"
+        className="top-actions-dropdown-item"
+        onClick={() => runAction(onCheckFocus)}
+      >
+        <span className="pen" aria-hidden>
+          <SettingsIcon />
+        </span>
+        Check focus
+      </button>
+      {canChangePassword && onChangePassword && (
+        <button
+          type="button"
+          role="menuitem"
+          className="top-actions-dropdown-item"
+          onClick={() => runAction(onChangePassword)}
+        >
+          <span className="pen" aria-hidden>
+            <KeyIcon />
+          </span>
+          Change password
+        </button>
+      )}
+    </>
+  );
 
   const inlineActions = (
     <>
@@ -243,56 +345,25 @@ export function TopActionsMenu({
         </span>
         <span className="btn-label">New entry</span>
       </button>
-      <button
-        type="button"
-        onClick={() => void onSignOut()}
-        className="lnk"
-        aria-label="Sign out"
-        title="Sign out"
-      >
-        <span className="pen" aria-hidden>
-          <SignOutIcon />
-        </span>
-        <span className="btn-label">Sign out</span>
-      </button>
-      <button
-        type="button"
-        onClick={onSendFeedback}
-        className="lnk"
-        aria-label="Send feedback about the app"
-        title="Send feedback about the app"
-      >
-        <span className="pen" aria-hidden>
-          <FeedbackIcon />
-        </span>
-        <span className="btn-label">Send feedback</span>
-      </button>
-      <button
-        type="button"
-        onClick={onCheckFocus}
-        className="lnk"
-        aria-label="Check focus settings"
-        title="Check focus settings"
-      >
-        <span className="pen" aria-hidden>
-          <SettingsIcon />
-        </span>
-        <span className="btn-label">Check focus</span>
-      </button>
-      {canChangePassword && onChangePassword && (
+      <div className="top-actions-user">
         <button
           type="button"
-          onClick={onChangePassword}
           className="lnk"
-          aria-label="Change password"
-          title="Change password"
+          onClick={() => setUserOpen(!userMenuOpen)}
+          aria-expanded={userMenuOpen}
+          aria-haspopup="menu"
+          aria-label="User menu"
+          title="User"
         >
           <span className="pen" aria-hidden>
-            <KeyIcon />
+            <UserIcon />
           </span>
-          <span className="btn-label">Change password</span>
+          <span className="btn-label">User</span>
+          <span className="pen" aria-hidden>
+            <ChevronIcon open={userMenuOpen} />
+          </span>
         </button>
-      )}
+      </div>
       <button
         type="button"
         onClick={onOpenFeedback}
@@ -318,7 +389,7 @@ export function TopActionsMenu({
           <button
             type="button"
             className="top-actions-menu-btn"
-            onClick={() => setOpen(!menuOpen)}
+            onClick={() => setHamburgerOpen(!menuOpen)}
             aria-expanded={menuOpen}
             aria-haspopup="menu"
             aria-label="More actions"
@@ -341,52 +412,10 @@ export function TopActionsMenu({
                 </span>
                 New entry
               </button>
-              <button
-                type="button"
-                role="menuitem"
-                className="top-actions-dropdown-item"
-                onClick={() => runAction(() => void onSignOut())}
-              >
-                <span className="pen" aria-hidden>
-                  <SignOutIcon />
-                </span>
-                Sign out
-              </button>
-              <button
-                type="button"
-                role="menuitem"
-                className="top-actions-dropdown-item"
-                onClick={() => runAction(onSendFeedback)}
-              >
-                <span className="pen" aria-hidden>
-                  <FeedbackIcon />
-                </span>
-                Send feedback
-              </button>
-              <button
-                type="button"
-                role="menuitem"
-                className="top-actions-dropdown-item"
-                onClick={() => runAction(onCheckFocus)}
-              >
-                <span className="pen" aria-hidden>
-                  <SettingsIcon />
-                </span>
-                Check focus
-              </button>
-              {canChangePassword && onChangePassword && (
-                <button
-                  type="button"
-                  role="menuitem"
-                  className="top-actions-dropdown-item"
-                  onClick={() => runAction(onChangePassword)}
-                >
-                  <span className="pen" aria-hidden>
-                    <KeyIcon />
-                  </span>
-                  Change password
-                </button>
-              )}
+              <div className="top-actions-dropdown-group">
+                <p className="top-actions-dropdown-label">User</p>
+                {userMenuItems}
+              </div>
               <button
                 type="button"
                 role="menuitem"
@@ -402,7 +431,54 @@ export function TopActionsMenu({
           )}
         </div>
       ) : (
-        inlineActions
+        <>
+          <button
+            type="button"
+            onClick={() => void onNewEntry()}
+            className="lnk"
+            aria-label="New entry"
+          >
+            <span className="pen" aria-hidden>
+              +
+            </span>
+            <span className="btn-label">New entry</span>
+          </button>
+          <div ref={menuRef} className="top-actions-user">
+            <button
+              type="button"
+              className="lnk"
+              onClick={() => setUserOpen(!userMenuOpen)}
+              aria-expanded={userMenuOpen}
+              aria-haspopup="menu"
+              aria-label="User menu"
+              title="User"
+            >
+              <span className="pen" aria-hidden>
+                <UserIcon />
+              </span>
+              <span className="btn-label">User</span>
+              <span className="pen" aria-hidden>
+                <ChevronIcon open={userMenuOpen} />
+              </span>
+            </button>
+            {userMenuOpen && (
+              <div className="top-actions-dropdown" role="menu">
+                {userMenuItems}
+              </div>
+            )}
+          </div>
+          <button
+            type="button"
+            onClick={onOpenFeedback}
+            className="feedback-btn"
+            aria-label="Feedback"
+          >
+            <span className="pen" aria-hidden>
+              ✎
+            </span>
+            <span className="btn-label">Feedback</span>
+          </button>
+        </>
       )}
     </div>
   );

@@ -32,6 +32,8 @@ interface DiscussionThreadProps {
    * Enter to send (Shift+Enter for newline), no shortcut hint.
    */
   compactComposer?: boolean;
+  /** Rows for the compact composer textarea (default 2). */
+  composerRows?: number;
 }
 
 function SendIcon({ className }: { className?: string }) {
@@ -71,6 +73,7 @@ export function DiscussionThread({
   messagesClassName = "space-y-2",
   collapsibleMessages = false,
   compactComposer = false,
+  composerRows = 2,
 }: DiscussionThreadProps) {
   // Explicit toggles only; unset indexes use the default (latest expanded).
   const [expandedByIndex, setExpandedByIndex] = useState<
@@ -200,11 +203,11 @@ export function DiscussionThread({
                 value={draft}
                 onChange={(e) => onDraftChange(e.target.value)}
                 onKeyDown={handleComposerKeyDown}
-                rows={2}
+                rows={composerRows}
                 maxLength={MAX_SUGGESTION_MESSAGE_LENGTH}
                 disabled={asking}
                 placeholder={placeholder}
-                className="min-w-0 flex-1 resize-none rounded-sm border border-paper-line/70 bg-white/50 px-2 py-1.5 font-mono text-sm text-ink-800 placeholder:text-ink-400 focus:border-pen/40 focus:outline-none focus:ring-1 focus:ring-pen/30 disabled:opacity-60"
+                className="min-w-0 flex-1 resize-y rounded-sm border border-paper-line/70 bg-white/50 px-2 py-1.5 font-mono text-sm text-ink-800 placeholder:text-ink-400 focus:border-pen/40 focus:outline-none focus:ring-1 focus:ring-pen/30 disabled:opacity-60"
               />
               <button
                 type="button"

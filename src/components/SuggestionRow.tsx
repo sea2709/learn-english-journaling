@@ -17,6 +17,14 @@ const categoryLabels: Record<SuggestionCategory, string> = {
 interface SuggestionRowProps {
   suggestion: Suggestion;
   defaultExpanded?: boolean;
+  /** When true, forces the row open (e.g. matching in-text highlight). */
+  forceExpanded?: boolean;
+  /** Visual link state when this note is focused from a highlight (or vice versa). */
+  anchored?: boolean;
+  /** DOM id for scroll/anchor targets. */
+  anchorId?: string;
+  /** When set, shows an "In text" control that jumps to the highlight. */
+  onRevealInText?: () => void;
   /** When set, shows an inline ask-AI discussion under the explanation. */
   onAsk?: (question: string) => Promise<void>;
   asking?: boolean;
@@ -25,6 +33,10 @@ interface SuggestionRowProps {
 export function SuggestionRow({
   suggestion,
   defaultExpanded = false,
+  forceExpanded = false,
+  anchored = false,
+  anchorId,
+  onRevealInText,
   onAsk,
   asking = false,
 }: SuggestionRowProps) {
@@ -36,6 +48,7 @@ export function SuggestionRow({
   // Reserve room for the next user + assistant pair.
   const atLimit = discussion.length + 2 > MAX_SUGGESTION_DISCUSSION_MESSAGES;
   const canAsk = Boolean(onAsk) && !asking && !atLimit;
+  const isExpanded = expanded || forceExpanded;
 
   const handleAsk = async () => {
     if (!onAsk || asking || atLimit) return;
@@ -58,17 +71,22 @@ export function SuggestionRow({
   };
 
   return (
-    <div className="border-b border-paper-line/60 last:border-b-0">
-      <button
-        type="button"
-        onClick={() => setExpanded((e) => !e)}
-        className="w-full py-3 text-left sm:min-h-0"
-        aria-expanded={expanded}
-      >
-        <div className="flex items-center gap-1.5">
+    <div
+      id={anchorId}
+      className={`scroll-mt-24 border-b border-paper-line/60 px-2 last:border-b-0 sm:px-3 ${
+        anchored ? "suggestion-note--anchored" : ""
+      }`}
+    >
+      <div className="flex items-center gap-2 px-1 pt-2.5">
+        <button
+          type="button"
+          onClick={() => setExpanded((e) => !e)}
+          className="-ml-1 flex min-w-0 flex-1 items-center gap-1.5 rounded-sm py-1 text-left"
+          aria-expanded={isExpanded}
+        >
           <svg
-            className={`h-3 w-3 shrink-0 text-pen transition-transform ${
-              expanded ? "rotate-90" : ""
+            className={`h-3.5 w-3.5 shrink-0 text-pen transition-transform ${
+              isExpanded ? "rotate-90" : ""
             }`}
             fill="none"
             viewBox="0 0 24 24"
@@ -85,17 +103,41 @@ export function SuggestionRow({
           <span className="text-[11px] font-medium uppercase tracking-wide text-pen">
             {label}
           </span>
-        </div>
-        <p className="mt-0.5 pl-[18px] break-words font-mono text-base text-ink-700 sm:truncate">
+        </button>
+
+        {onRevealInText && (
+          <button
+            type="button"
+            onClick={(event) => {
+              event.stopPropagation();
+              onRevealInText();
+            }}
+            className="shrink-0 font-sans text-xs text-ink-500 no-underline hover:text-pen hover:underline hover:decoration-pen/60 hover:underline-offset-2"
+            title="Show in paragraph"
+          >
+            In text
+          </button>
+        )}
+      </div>
+
+      <button
+        type="button"
+        onClick={() => setExpanded((e) => !e)}
+        className="w-full px-1 pb-2.5 text-left"
+        aria-expanded={isExpanded}
+      >
+        <p className="line-clamp-2 pl-5 font-mono text-base text-ink-700">
           {suggestion.original}
         </p>
       </button>
 
-      {expanded && (
-        <div className="space-y-2 pb-3 pl-[18px] font-mono text-base leading-relaxed">
+      {isExpanded && (
+        <div className="space-y-2.5 pb-3 pl-5 font-mono text-base leading-relaxed">
           <p>
             <span className="text-ink-500">→ </span>
-            <span className="text-ink-900">{suggestion.suggestion}</span>
+            <span className="font-medium text-ink-900">
+              {suggestion.suggestion}
+            </span>
           </p>
           <p className="text-sm leading-relaxed text-ink-600">
             {suggestion.explanation}
@@ -114,6 +156,8 @@ export function SuggestionRow({
               canAsk={canAsk}
               atLimit={atLimit}
               error={localError}
+              compactComposer
+              className="mt-4 space-y-2 border-t border-paper-line/50 pt-3"
             />
           )}
         </div>

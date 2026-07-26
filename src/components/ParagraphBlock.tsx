@@ -1,10 +1,20 @@
 "use client";
 
-import { useEffect, useId, useRef, useState } from "react";
+import { useEffect, useId, useMemo, useRef, useState } from "react";
 import type { JournalParagraph } from "@/lib/types";
 import { isParagraphStale } from "@/lib/entry-utils";
+import {
+  buildHighlightSegments,
+  resolveSuggestionSpans,
+  suggestionIdsOverlappingEdit,
+} from "@/lib/suggestion-spans";
+import {
+  scrollSuggestionAnchor,
+  suggestionNoteDomId,
+} from "@/lib/suggestion-anchors";
 import { MAX_SUGGESTION_DISCUSSION_MESSAGES } from "@/lib/suggestion-discussion";
 import { DiscussionThread } from "./DiscussionThread";
+import { SuggestionHighlight } from "./SuggestionHighlight";
 import { SuggestionRow } from "./SuggestionRow";
 
 interface ParagraphBlockProps {
@@ -58,6 +68,18 @@ export function ParagraphBlock({
   const [askMaxHeight, setAskMaxHeight] = useState<number | undefined>();
   const [draft, setDraft] = useState("");
   const [localError, setLocalError] = useState<string | null>(null);
+  const [activeSuggestionId, setActiveSuggestionId] = useState<string | null>(
+    null
+  );
+  const [pulseSuggestionId, setPulseSuggestionId] = useState<string | null>(
+    null
+  );
+  const [pendingNoteScrollId, setPendingNoteScrollId] = useState<string | null>(
+    null
+  );
+  const [dismissedSuggestionIds, setDismissedSuggestionIds] = useState(
+    () => new Set<string>()
+  );
   const stale = isParagraphStale(paragraph);
   const hasNotes = Boolean(paragraph.analysis);
   const dimmed = isWriting && !isActive;
@@ -68,6 +90,105 @@ export function ParagraphBlock({
   const asking = askingParagraphId === paragraph.id;
   const atLimit = discussion.length + 2 > MAX_SUGGESTION_DISCUSSION_MESSAGES;
   const canAsk = !asking && !atLimit;
+
+  const suggestions = paragraph.analysis?.suggestions ?? [];
+  const analysisEpoch = `${paragraph.analyzedText ?? ""}:${suggestions
+    .map((item) => item.id)
+    .join(",")}`;
+  const [seenAnalysisEpoch, setSeenAnalysisEpoch] = useState(analysisEpoch);
+  if (analysisEpoch !== seenAnalysisEpoch) {
+    setSeenAnalysisEpoch(analysisEpoch);
+    setDismissedSuggestionIds(new Set());
+    setActiveSuggestionId(null);
+  }
+
+  const suggestionById = useMemo(() => {
+    const map = new Map(suggestions.map((item) => [item.id, item]));
+    return map;
+  }, [suggestions]);
+
+  const highlightableSuggestions = useMemo(
+    () =>
+      suggestions.filter(
+        (suggestion) => !dismissedSuggestionIds.has(suggestion.id)
+      ),
+    [suggestions, dismissedSuggestionIds]
+  );
+
+  // Keep highlights that still match; drop only spans the user edited.
+  const highlightSegments = useMemo(() => {
+    if (!paragraph.analysis || highlightableSuggestions.length === 0) {
+      return null;
+    }
+    const spans = resolveSuggestionSpans(
+      paragraph.text,
+      highlightableSuggestions
+    );
+    if (spans.length === 0) return null;
+    return buildHighlightSegments(paragraph.text, spans);
+  }, [paragraph.analysis, paragraph.text, highlightableSuggestions]);
+
+  const mappedSuggestionIds = useMemo(() => {
+    const ids = new Set<string>();
+    if (!highlightSegments) return ids;
+    for (const segment of highlightSegments) {
+      if (segment.type === "mark") ids.add(segment.suggestionId);
+    }
+    return ids;
+  }, [highlightSegments]);
+
+  const effectiveActiveSuggestionId =
+    activeSuggestionId && mappedSuggestionIds.has(activeSuggestionId)
+      ? activeSuggestionId
+      : null;
+  const notesOpen = notesExpanded;
+
+  const activateSuggestion = (suggestionId: string | null) => {
+    setActiveSuggestionId(suggestionId);
+  };
+
+  const revealSuggestionInText = (suggestionId: string) => {
+    setActiveSuggestionId(suggestionId);
+    setPulseSuggestionId(suggestionId);
+    scrollSuggestionAnchor(suggestionId, "mark");
+  };
+
+  const revealSuggestionInNotes = (suggestionId: string) => {
+    setNotesExpanded(true);
+    setActiveSuggestionId(suggestionId);
+    setPendingNoteScrollId(suggestionId);
+  };
+
+  useEffect(() => {
+    if (!pulseSuggestionId) return;
+    const timer = window.setTimeout(() => setPulseSuggestionId(null), 900);
+    return () => window.clearTimeout(timer);
+  }, [pulseSuggestionId]);
+
+  useEffect(() => {
+    if (!pendingNoteScrollId || !notesExpanded) return;
+    scrollSuggestionAnchor(pendingNoteScrollId, "note");
+    setPendingNoteScrollId(null);
+  }, [pendingNoteScrollId, notesExpanded]);
+
+  const handleTextChange = (next: string) => {
+    const prev = paragraph.text;
+    if (prev !== next && highlightableSuggestions.length > 0) {
+      const spans = resolveSuggestionSpans(prev, highlightableSuggestions);
+      const hitIds = suggestionIdsOverlappingEdit(prev, next, spans);
+      if (hitIds.length > 0) {
+        setDismissedSuggestionIds((current) => {
+          const nextDismissed = new Set(current);
+          for (const id of hitIds) nextDismissed.add(id);
+          return nextDismissed;
+        });
+        if (activeSuggestionId && hitIds.includes(activeSuggestionId)) {
+          setActiveSuggestionId(null);
+        }
+      }
+    }
+    onTextChange(paragraph.id, next);
+  };
 
   const adjustHeight = () => {
     const el = textareaRef.current;
@@ -194,18 +315,23 @@ export function ParagraphBlock({
     }
   };
 
+  const editorTextClass =
+    "w-full resize-none overflow-hidden border-0 bg-transparent py-1 font-mono text-base leading-relaxed placeholder:text-ink-400 focus:outline-none focus:ring-0 sm:py-2 sm:text-lg sm:leading-[1.75]";
+
   return (
     <div
       className={`group relative transition-opacity duration-200 ${
-        dimmed && !askOpen ? "writing-dim" : ""
-      } ${askOpen ? "z-30" : ""}`}
+        dimmed && !askOpen && !effectiveActiveSuggestionId ? "writing-dim" : ""
+      } ${askOpen || effectiveActiveSuggestionId ? "z-30" : ""}`}
       onClick={() => onSelect(paragraph.id)}
     >
       <div className="notebook-margin relative">
         <textarea
           ref={textareaRef}
           value={paragraph.text}
-          onChange={(e) => onTextChange(paragraph.id, e.target.value)}
+          onChange={(e) => {
+            handleTextChange(e.target.value);
+          }}
           onFocus={() => onSelect(paragraph.id)}
           onKeyDown={handleKeyDown}
           placeholder={
@@ -214,8 +340,60 @@ export function ParagraphBlock({
               : "Continue writing…"
           }
           rows={1}
-          className="w-full resize-none overflow-hidden border-0 bg-transparent py-1 font-mono text-base leading-relaxed text-ink-900 placeholder:text-ink-400 focus:outline-none focus:ring-0 sm:py-2 sm:text-lg sm:leading-[1.75]"
+          className={`${editorTextClass} relative z-0 ${
+            highlightSegments
+              ? "caret-ink-900 text-transparent selection:bg-pen/25 selection:text-transparent"
+              : "text-ink-900"
+          }`}
         />
+        {highlightSegments && (
+          <div
+            aria-hidden={!effectiveActiveSuggestionId}
+            className="pointer-events-none absolute inset-0 z-10 whitespace-pre-wrap break-words py-1 font-mono text-base leading-relaxed text-ink-900 sm:py-2 sm:text-lg sm:leading-[1.75]"
+          >
+            {highlightSegments.map((segment, segmentIndex) => {
+              if (segment.type === "text") {
+                return (
+                  <span key={`t-${segmentIndex}`}>{segment.value}</span>
+                );
+              }
+
+              const suggestion = suggestionById.get(segment.suggestionId);
+              if (!suggestion) {
+                return (
+                  <span key={`m-${segment.suggestionId}-${segmentIndex}`}>
+                    {segment.value}
+                  </span>
+                );
+              }
+
+              return (
+                <SuggestionHighlight
+                  key={`m-${segment.suggestionId}`}
+                  suggestion={suggestion}
+                  text={segment.value}
+                  startOffset={segment.start}
+                  interactive
+                  active={effectiveActiveSuggestionId === suggestion.id}
+                  pulsing={pulseSuggestionId === suggestion.id}
+                  onActivate={activateSuggestion}
+                  onRevealInNotes={() => revealSuggestionInNotes(suggestion.id)}
+                  onPlaceCaret={(offset) => {
+                    const el = textareaRef.current;
+                    if (!el) return;
+                    el.focus();
+                    el.setSelectionRange(offset, offset);
+                    onSelect(paragraph.id);
+                  }}
+                  asking={askingSuggestionId === suggestion.id}
+                  onAsk={(question) =>
+                    onAskSuggestion(paragraph.id, suggestion.id, question)
+                  }
+                />
+              );
+            })}
+          </div>
+        )}
       </div>
 
       {canCheck && (
@@ -321,7 +499,7 @@ export function ParagraphBlock({
       )}
 
       {hasNotes && paragraph.analysis && (
-        <div className="mt-1 border-l-2 border-pen/30 pl-3">
+        <div className="mt-1 border-l-2 border-pen/30 pl-3 sm:pl-4">
           <button
             type="button"
             onClick={(e) => {
@@ -329,11 +507,11 @@ export function ParagraphBlock({
               setNotesExpanded((v) => !v);
             }}
             className="flex items-center gap-1.5 py-1 text-[11px] font-medium uppercase tracking-wide text-pen sm:py-0"
-            aria-expanded={notesExpanded}
+            aria-expanded={notesOpen}
           >
             <svg
               className={`h-3 w-3 transition-transform ${
-                notesExpanded ? "rotate-90" : ""
+                notesOpen ? "rotate-90" : ""
               }`}
               fill="none"
               viewBox="0 0 24 24"
@@ -350,7 +528,7 @@ export function ParagraphBlock({
             {notesLabel}
           </button>
 
-          {notesExpanded && (
+          {notesOpen && (
             <div className="mt-2 space-y-0">
               <div className="mb-3">
                 <p className="mb-1 text-[11px] font-medium uppercase tracking-wide text-ink-500">
@@ -367,6 +545,16 @@ export function ParagraphBlock({
                 <SuggestionRow
                   key={suggestion.id}
                   suggestion={suggestion}
+                  anchorId={suggestionNoteDomId(suggestion.id)}
+                  anchored={effectiveActiveSuggestionId === suggestion.id}
+                  forceExpanded={
+                    effectiveActiveSuggestionId === suggestion.id
+                  }
+                  onRevealInText={
+                    mappedSuggestionIds.has(suggestion.id)
+                      ? () => revealSuggestionInText(suggestion.id)
+                      : undefined
+                  }
                   asking={askingSuggestionId === suggestion.id}
                   onAsk={(question) =>
                     onAskSuggestion(paragraph.id, suggestion.id, question)

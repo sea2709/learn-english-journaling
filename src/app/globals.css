@@ -319,4 +319,40 @@
     opacity: 0.35;
     transition: opacity 0.2s ease;
   }
+
+  .suggestion-mark {
+    background-color: rgba(176, 67, 46, 0.14);
+    color: inherit;
+    box-decoration-break: clone;
+    -webkit-box-decoration-break: clone;
+  }
+
+  .suggestion-mark--interactive:hover,
+  .suggestion-mark--active {
+    background-color: rgba(176, 67, 46, 0.28);
+  }
+
+  .suggestion-mark--stale {
+    background-color: rgba(176, 67, 46, 0.08);
+  }
+
+  .suggestion-mark--pulse {
+    animation: suggestion-anchor-pulse 0.9s ease;
+  }
+
+  .suggestion-note--anchored {
+    box-shadow: inset 3px 0 0 rgba(176, 67, 46, 0.55);
+  }
+
+  @keyframes suggestion-anchor-pulse {
+    0% {
+      background-color: rgba(176, 67, 46, 0.14);
+    }
+    35% {
+      background-color: rgba(176, 67, 46, 0.45);
+    }
+    100% {
+      background-color: rgba(176, 67, 46, 0.14);
+    }
+  }
 }

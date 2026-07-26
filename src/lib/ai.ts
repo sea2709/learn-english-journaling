@@ -83,6 +83,8 @@ Do not include suggestions outside the selected focus areas.
 
 Be encouraging but precise. Prioritize changes that make the writing sound more natural to native English speakers.
 
+For each suggestion, "original" MUST be an exact contiguous substring copied from the user's text (same spelling, spacing, and punctuation). Do not paraphrase, summarize, or invent a label like "overall tone". If you cannot quote a specific span, omit that suggestion.
+
 Include ${suggestionRange}. If the text is already excellent, still provide at least ${minimumSuggestions} minor polish suggestions.${customNote}`;
 }
 
@@ -217,6 +219,47 @@ export async function analyzeText(
   return withSuggestionIds(filterSuggestions(object, preferences));
 }
 
+function mockAnchorsFromText(
+  text: string,
+  preferences: AnalysisPreferences
+): {
+  category: Suggestion["category"];
+  original: string;
+  suggestion: string;
+  explanation: string;
+}[] {
+  const trimmed = text.trim();
+  if (!trimmed) return [];
+
+  const words = trimmed.split(/\s+/).filter(Boolean);
+  const areas = preferences.focusAreas;
+  if (areas.length === 0 || words.length === 0) return [];
+
+  const count = Math.min(words.length, areas.length, 4);
+  const anchors: {
+    category: Suggestion["category"];
+    original: string;
+    suggestion: string;
+    explanation: string;
+  }[] = [];
+
+  for (let i = 0; i < count; i++) {
+    const original = words[i]!;
+    const category = areas[i]!;
+    anchors.push({
+      category,
+      original,
+      suggestion: `${original}…`,
+      explanation:
+        i === 0
+          ? "Demo note anchored to your text. Connect an AI API key for personalized feedback."
+          : `Demo suggestion for ${category}-focused feedback.`,
+    });
+  }
+
+  return anchors;
+}
+
 export function getMockAnalysis(
   text: string,
   preferences: AnalysisPreferences = DEFAULT_ANALYSIS_PREFERENCES
@@ -229,33 +272,7 @@ export function getMockAnalysis(
     summary: preferences.customNote
       ? `Demo analysis focused on ${focusSummary}. Goal: ${preferences.customNote}`
       : `Demo analysis focused on ${focusSummary}. Configure GOOGLE_GENERATIVE_AI_API_KEY in .env.local to get real AI feedback on your writing.`,
-    suggestions: [
-      {
-        category: "naturalness",
-        original: "your paragraph",
-        suggestion: "your polished paragraph",
-        explanation:
-          "Connect your AI provider API key to receive personalized suggestions for your actual writing.",
-      },
-      {
-        category: "grammar",
-        original: "sample phrase",
-        suggestion: "polished phrase",
-        explanation: "Demo suggestion for grammar-focused feedback.",
-      },
-      {
-        category: "spelling",
-        original: "recieve",
-        suggestion: "receive",
-        explanation: "Demo suggestion for spelling-focused feedback.",
-      },
-      {
-        category: "word-choice",
-        original: "common word",
-        suggestion: "more precise word",
-        explanation: "Demo suggestion for word-choice-focused feedback.",
-      },
-    ],
+    suggestions: mockAnchorsFromText(text, preferences),
   };
 
   return withSuggestionIds(filterSuggestions(result, preferences));
@@ -295,28 +312,7 @@ export function getMockEntryReview(
     tone: "neutral",
     grammarScore: 72,
     summary: `Demo full-entry review across ${paragraphCount || 1} paragraph${paragraphCount === 1 ? "" : "s"}, focused on ${focusSummary}. Configure GOOGLE_GENERATIVE_AI_API_KEY in .env.local for real feedback.`,
-    suggestions: [
-      {
-        category: "naturalness",
-        original: "your entry",
-        suggestion: "your polished entry",
-        explanation:
-          "Connect your AI provider API key to receive personalized suggestions for your full journal entry.",
-      },
-      {
-        category: "tone",
-        original: "overall tone",
-        suggestion: "consistent tone",
-        explanation:
-          "A full-entry review checks tone consistency across all paragraphs.",
-      },
-      {
-        category: "grammar",
-        original: "sample sentence",
-        suggestion: "corrected sentence",
-        explanation: "Demo grammar suggestion for the full entry.",
-      },
-    ],
+    suggestions: mockAnchorsFromText(text, preferences),
   };
 
   return withSuggestionIds(filterSuggestions(result, preferences));

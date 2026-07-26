@@ -3,6 +3,7 @@
 import { useEffect } from "react";
 import type { EntryReviewResult } from "@/lib/types";
 import { ScoreRing } from "./ScoreRing";
+import { Spinner } from "./Spinner";
 import { SuggestionRow } from "./SuggestionRow";
 
 interface FeedbackDrawerProps {
@@ -77,7 +78,7 @@ export function FeedbackDrawer({
         <div className="flex-1 overflow-y-auto px-5 py-4">
           {loading ? (
             <div className="flex flex-col items-center justify-center py-16 text-center">
-              <div className="mb-4 h-8 w-8 animate-spin rounded-full border-2 border-paper-line border-t-pen" />
+              <Spinner className="mb-4" label="Reviewing your entry" />
               <p className="font-display text-sm font-medium text-ink-700">
                 Reviewing your entry…
               </p>

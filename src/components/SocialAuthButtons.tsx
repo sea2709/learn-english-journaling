@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
+import { Spinner } from "./Spinner";
 
 type OAuthProvider = "google" | "facebook";
 
@@ -83,10 +84,11 @@ export function SocialAuthButtons({ disabled }: SocialAuthButtonsProps) {
           key={id}
           type="button"
           disabled={disabled || loadingProvider !== null}
+          aria-busy={loadingProvider === id}
           onClick={() => handleOAuth(id)}
           className="flex w-full items-center justify-center gap-3 rounded-full border border-ink-200 bg-white px-4 py-2.5 text-sm font-medium text-ink-800 transition hover:bg-ink-50 disabled:cursor-not-allowed disabled:opacity-60"
         >
-          {icon}
+          {loadingProvider === id ? <Spinner size="sm" /> : icon}
           {loadingProvider === id ? "Redirecting…" : label}
         </button>
       ))}

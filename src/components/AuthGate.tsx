@@ -5,6 +5,7 @@ import type { User } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/client";
 import { AuthForm } from "./AuthForm";
 import { JournalApp } from "./JournalApp";
+import { Spinner } from "./Spinner";
 
 export function AuthGate() {
   const [user, setUser] = useState<User | null>(null);
@@ -30,7 +31,8 @@ export function AuthGate() {
 
   if (loading) {
     return (
-      <div className="flex min-h-screen items-center justify-center paper-texture">
+      <div className="flex min-h-screen flex-col items-center justify-center gap-3 paper-texture">
+        <Spinner label="Loading" />
         <p className="text-sm text-ink-500">Loading…</p>
       </div>
     );
@@ -40,7 +42,8 @@ export function AuthGate() {
     return (
       <Suspense
         fallback={
-          <div className="flex min-h-screen items-center justify-center paper-texture">
+          <div className="flex min-h-screen flex-col items-center justify-center gap-3 paper-texture">
+            <Spinner label="Loading" />
             <p className="text-sm text-ink-500">Loading…</p>
           </div>
         }

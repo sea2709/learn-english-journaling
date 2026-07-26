@@ -6,6 +6,7 @@ import {
   MAX_SUGGESTION_MESSAGE_LENGTH,
 } from "@/lib/suggestion-discussion";
 import type { SuggestionMessage } from "@/lib/types";
+import { Spinner } from "./Spinner";
 
 interface DiscussionThreadProps {
   discussion: SuggestionMessage[];
@@ -213,13 +214,12 @@ export function DiscussionThread({
                 type="button"
                 onClick={() => void onAsk()}
                 disabled={!canAsk || !draft.trim()}
+                aria-busy={asking}
                 aria-label={asking ? submittingLabel : submitLabel}
                 className="inline-flex shrink-0 items-center justify-center rounded-full bg-pen px-2.5 py-2 text-white transition-opacity hover:bg-pen/90 disabled:cursor-not-allowed disabled:opacity-40"
               >
                 {asking ? (
-                  <span className="text-xs text-white" aria-hidden>
-                    …
-                  </span>
+                  <Spinner size="sm" tone="inverse" />
                 ) : (
                   <SendIcon className="h-4 w-4 text-white" />
                 )}
@@ -257,8 +257,10 @@ export function DiscussionThread({
                 type="button"
                 onClick={() => void onAsk()}
                 disabled={!canAsk || !draft.trim()}
+                aria-busy={asking}
                 className="feedback-btn px-3 py-1 text-xs disabled:opacity-50"
               >
+                {asking && <Spinner size="sm" />}
                 {asking ? submittingLabel : submitLabel}
               </button>
             </div>

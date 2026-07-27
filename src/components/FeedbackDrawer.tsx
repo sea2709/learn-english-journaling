@@ -46,17 +46,17 @@ export function FeedbackDrawer({
       <aside
         className="fixed right-0 top-0 z-50 flex h-full w-full animate-drawer-in-right flex-col bg-paper shadow-xl sm:w-[380px] sm:max-w-[calc(100vw-2rem)]"
         role="dialog"
-        aria-label="Entry feedback"
+        aria-label="Entry review"
       >
         <header className="flex items-center justify-between border-b border-paper-line px-5 py-4">
           <h2 className="font-display text-lg font-semibold text-ink-900">
-            Feedback
+            Review
           </h2>
           <button
             type="button"
             onClick={onClose}
             className="flex min-h-11 min-w-11 items-center justify-center rounded p-1.5 text-ink-500 transition hover:bg-paper-dark hover:text-ink-800 sm:min-h-0 sm:min-w-0"
-            aria-label="Close feedback"
+            aria-label="Close review"
           >
             <svg
               className="h-5 w-5"

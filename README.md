@@ -101,14 +101,15 @@ Without an API key, the app runs in demo mode with sample analysis responses.
 ## How to use
 
 1. Register or sign in
-2. (Optional) Open **Check focus** in the topbar to choose which areas AI should review and add a short learning goal (e.g. "I'm preparing for IELTS")
+2. (Optional) Open **Account → Check focus** to choose which areas AI should review and add a short learning goal (e.g. "I'm preparing for IELTS")
 3. Write a paragraph in the editor
 4. Press **Ctrl+Enter** (or click **Check**; on mobile, tap **Check**) to get AI feedback on that paragraph — suggestions appear inline below the block
 5. Press **Enter** to add another paragraph, or **Add image** to insert a photo between blocks
-6. Open **Feedback** in the topbar (or hamburger menu on small screens) for a full-entry review (uses your current check focus settings)
+6. Open **Review** in the topbar (or hamburger menu on small screens) for a full-entry review (uses your current check focus settings)
 7. Entries auto-save every 10 seconds; use **Save** at the bottom of the editor for an immediate write
 8. Open **Entries** in the topbar to browse, reload, or delete past entries
-9. Use **Send feedback** in the topbar menu to report bugs or share ideas with the team
+9. Use **Account → App feedback** to report bugs or share ideas with the team
+10. Email users can open **Account → Change password** to update their password while signed in
 
 ## Data model
 
@@ -128,24 +129,25 @@ Row Level Security policies enforce that `user_id = auth.uid()` on all journal a
 | Area | Purpose |
 |------|---------|
 | Topbar (left) | App title + **Entries** button with saved count |
-| Topbar (right) | New entry, Sign out, Send feedback, Check focus, Feedback — inline on wide screens; hamburger menu below 640px |
+| Topbar (right) | New entry, **Account** menu, Review — inline on wide screens; hamburger menu below 640px |
 | Center | Title + paragraph blocks with inline per-paragraph notes |
 | Editor footer | Auto-save status + **Save** button |
 | Left drawer | Saved journal entries grouped by month |
 | Right drawer | Full-entry AI review |
 | Check focus overlay | Toggle focus areas and set an optional learning goal |
-| Send feedback overlay | Submit bug reports, ideas, or other app feedback |
+| App feedback overlay | Submit bug reports, ideas, or other app feedback |
+| Change password overlay | Email users: update password while signed in |
 
 ## Mobile UI
 
 On phones and narrow screens, the app prioritizes writing space and touch-friendly controls:
 
-- **Topbar** — **English Journal** and **Entries** (with saved count) stay visible on the left. Other actions (**New entry**, **Sign out**, **Send feedback**, **Check focus**, **Feedback**) move into the **hamburger menu** (☰) on the right.
+- **Topbar** — **English Journal** and **Entries** (with saved count) stay visible on the left. Other actions (**New entry**, **Account** menu items, **Review**) move into the **hamburger menu** (☰) on the right.
 - **Writing area** — paragraphs use the full screen width; the notebook left margin and red line only appear on larger screens.
 - **Paragraph feedback** — tap **Check** on a paragraph after you write it. `Ctrl+Enter` is for desktop keyboards; on mobile, use the button.
 - **New paragraph** — press **Enter** on your keyboard, or use the on-screen keyboard’s return key.
 - **Save** — auto-save still runs every 10 seconds; tap **Save** at the bottom of the editor when you want an immediate write.
-- **Drawers & overlays** — **Entries**, **Feedback**, **Check focus**, and **Send feedback** open as full-screen-friendly overlays; scroll is locked while one is open.
+- **Drawers & overlays** — **Entries**, **Review**, **Check focus**, **App feedback**, and **Change password** open as full-screen-friendly overlays; scroll is locked while one is open.
 
 ## Admin dashboard
 

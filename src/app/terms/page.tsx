@@ -176,7 +176,7 @@ export default function TermsOfServicePage() {
         <h2>12. Contact</h2>
         <p>
           Questions about these Terms can be sent through the in-app{" "}
-          <strong className="font-medium text-ink-800">Send feedback</strong>{" "}
+          <strong className="font-medium text-ink-800">App feedback</strong>{" "}
           feature after you sign in. You can also review our{" "}
           <Link href="/privacy">Privacy Policy</Link>.
         </p>

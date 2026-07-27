@@ -179,7 +179,7 @@ flowchart TB
 
 ### Request flow: ask about a suggestion
 
-1. User expands a paragraph suggestion and asks a follow-up in `SuggestionRow` (paragraph notes only; Feedback drawer stays view-only).
+1. User expands a paragraph suggestion and asks a follow-up in `SuggestionRow` (paragraph notes only; Review drawer stays view-only).
 2. `JournalApp.handleAskSuggestion` calls `askAboutSuggestion()` with paragraph text, the suggestion fields, prior `discussion` messages, and preferences.
 3. `POST /api/analyze/suggestion-chat` validates payload (paragraph ≤ 5000 chars, message ≤ 1000 chars, ≤ 20 stored messages after the reply).
 4. If no AI API key → `getMockSuggestionReply()`; else `discussSuggestion()` via `generateText` with a suggestion-scoped system prompt.
@@ -187,7 +187,7 @@ flowchart TB
 
 ### Request flow: ask about a paragraph
 
-1. User clicks **Ask more** next to **Check** on a non-empty text block; a popover opens with the paragraph chat (available before or after Check; Feedback drawer stays view-only).
+1. User clicks **Ask more** next to **Check** on a non-empty text block; a popover opens with the paragraph chat (available before or after Check; Review drawer stays view-only).
 2. `JournalApp.handleAskParagraph` calls `askAboutParagraph()` with current paragraph text, optional `analysis`, prior `discussion` messages, and preferences.
 3. `POST /api/analyze/paragraph-chat` validates payload (paragraph ≤ 5000 chars, message ≤ 1000 chars, ≤ 20 stored messages after the reply).
 4. If no AI API key → `getMockParagraphReply()`; else `discussParagraph()` via `generateText` with a paragraph-scoped system prompt (includes Check notes when present).
@@ -195,19 +195,19 @@ flowchart TB
 
 ### Request flow: full-entry review
 
-1. User opens the **Feedback** drawer from the topbar.
+1. User opens the **Review** drawer from the topbar.
 2. `JournalApp` calls `analyzeEntryReview()` with all text blocks joined and current `analysisPreferences`.
 3. `POST /api/analyze/review` validates text (non-empty, ≤ 20,000 chars) and optional `preferences`.
 4. If no AI API key → `getMockEntryReview()`; else `reviewEntry()` in `lib/ai.ts`.
 5. `FeedbackDrawer` shows score (`ScoreRing`), tone, summary, polished version, focus summary, and `SuggestionRow` list.
 
-The topbar feedback badge counts **paragraph-level** `suggestions.length`, not entry-review suggestions.
+The topbar Review control opens the full-entry review drawer. Paragraph-level suggestion counts are shown inline under each block, not as a topbar badge.
 
 ### Request flow: check focus preferences
 
 1. On sign-in, `JournalApp` calls `fetchPreferences()` → `GET /api/preferences`.
 2. `getPreferencesForUser()` in `preferences-db.ts` returns existing row or inserts defaults (`DEFAULT_ANALYSIS_PREFERENCES` from `analysis-preferences.ts`).
-3. User opens **Check focus** from the User menu → `CheckFocusSettings` overlay.
+3. User opens **Check focus** from the Account menu → `CheckFocusSettings` overlay.
 4. User toggles focus areas (at least one required) and optionally sets a learning goal (≤ 300 chars).
 5. Save calls `savePreferences()` → `PATCH /api/preferences` → `upsertPreferencesForUser()`.
 6. Updated preferences are passed to subsequent paragraph checks and entry reviews.
@@ -228,7 +228,7 @@ The topbar feedback badge counts **paragraph-level** `suggestions.length`, not e
 - `AuthGate` subscribes to `supabase.auth.onAuthStateChange`.
 - Email: `signUp` / `signInWithPassword` in `AuthForm`.
 - Forgot password: `AuthForm` calls `resetPasswordForEmail` → recovery email → `/auth/callback?next=/auth/reset-password` → `ResetPasswordForm` calls `updateUser({ password })` → redirect `/`.
-- Change password (signed in): email-identity users open **Change password** from the User menu → `ChangePasswordForm` verifies via `signInWithPassword` with the current password, then `updateUser({ password })`.
+- Change password (signed in): email-identity users open **Change password** from the Account menu → `ChangePasswordForm` verifies via `signInWithPassword` with the current password, then `updateUser({ password })`.
 - OAuth: `signInWithOAuth` → provider → `/auth/callback` → `exchangeCodeForSession` → redirect `/`.
 - `proxy.ts` calls `updateSession()` from `lib/supabase/middleware.ts` to refresh cookies on every request.
 - API routes use **server** `createClient()` and reject unauthenticated entry and preferences requests with 401.
@@ -345,7 +345,7 @@ Centered single-column editor (`max-w-sheet`) with a sticky topbar and overlay d
 | Area | Component | Notes |
 |------|-----------|-------|
 | Topbar left | `JournalApp` | Brand title + **Entries** button (saved count badge) |
-| Topbar right | `TopActionsMenu` | Wide screens: New entry, **User** menu (Sign out, Send feedback, Check focus, Change password for email users), Feedback. Below 640px: hamburger with the same actions (User items grouped under a User section) |
+| Topbar right | `TopActionsMenu` | Wide screens: New entry, **Account** menu (email, Check focus, Change password for email users, App feedback, Sign out), Review. Below 640px: hamburger with the same actions (Account items grouped under an Account section) |
 | Center | Title + `ParagraphEditor` + save footer | Main writing area; per-paragraph feedback inline; active block shows focus summary; **Save** button and auto-save status in footer (not topbar) |
 | Left overlay | `EntryDrawer` | Past entries grouped by month; new entry, refresh, delete |
 | Right overlay | `FeedbackDrawer` | Full-entry AI review on demand; shows current focus summary |
@@ -355,7 +355,7 @@ Centered single-column editor (`max-w-sheet`) with a sticky topbar and overlay d
 
 **Mobile editor:** no left notebook margin or dot below `sm`; writing area is full width. Notebook margin (`pl-14` + `.notebook-margin::before` dot) applies from `sm` up.
 
-Key CSS utilities in `globals.css`: `.topbar`, `.topbar-left`, `.top-actions`, `.feedback-btn`, `.pen`, `.lnk`, `.notebook-margin`, `.writing-dim`, `body.drawer-open` (scroll lock when entries, feedback, check-focus, change-password, or feedback-form overlay is open).
+Key CSS utilities in `globals.css`: `.topbar`, `.topbar-left`, `.top-actions`, `.feedback-btn`, `.pen`, `.lnk`, `.notebook-margin`, `.writing-dim`, `body.drawer-open` (scroll lock when entries, review, check-focus, change-password, or app-feedback overlay is open).
 
 ## Conventions for agents
 

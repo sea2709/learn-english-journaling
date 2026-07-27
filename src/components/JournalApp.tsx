@@ -116,6 +116,9 @@ export function JournalApp({ user }: { user: User }) {
   const [changePasswordError, setChangePasswordError] = useState<string | null>(
     null
   );
+  const [changePasswordSuccess, setChangePasswordSuccess] = useState<
+    string | null
+  >(null);
   const [actionsMenuOpen, setActionsMenuOpen] = useState(false);
 
   const canChangePassword = userCanChangePassword(user);
@@ -609,6 +612,7 @@ export function JournalApp({ user }: { user: User }) {
 
     setChangePasswordSubmitting(true);
     setChangePasswordError(null);
+    setChangePasswordSuccess(null);
 
     const supabase = createClient();
 
@@ -645,7 +649,7 @@ export function JournalApp({ user }: { user: User }) {
         return;
       }
 
-      setChangePasswordOpen(false);
+      setChangePasswordSuccess("Password updated.");
       setMessage({ type: "success", text: "Password updated." });
     } catch {
       setChangePasswordError("Something went wrong.");
@@ -755,6 +759,7 @@ export function JournalApp({ user }: { user: User }) {
           </button>
         </div>
         <TopActionsMenu
+          userEmail={user.email}
           onNewEntry={handleNewEntry}
           onSignOut={async () => {
             const supabase = createClient();
@@ -772,9 +777,10 @@ export function JournalApp({ user }: { user: User }) {
           canChangePassword={canChangePassword}
           onChangePassword={() => {
             setChangePasswordError(null);
+            setChangePasswordSuccess(null);
             setChangePasswordOpen(true);
           }}
-          onOpenFeedback={handleOpenFeedback}
+          onOpenReview={handleOpenFeedback}
           onMenuOpenChange={setActionsMenuOpen}
         />
       </header>
@@ -924,9 +930,11 @@ export function JournalApp({ user }: { user: User }) {
         open={changePasswordOpen}
         submitting={changePasswordSubmitting}
         error={changePasswordError}
+        successMessage={changePasswordSuccess}
         onClose={() => {
           setChangePasswordOpen(false);
           setChangePasswordError(null);
+          setChangePasswordSuccess(null);
         }}
         onSubmit={(payload) => void handleChangePassword(payload)}
       />

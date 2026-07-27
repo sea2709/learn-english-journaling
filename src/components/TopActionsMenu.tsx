@@ -9,11 +9,12 @@ import {
 } from "react";
 
 interface TopActionsMenuProps {
+  userEmail?: string | null;
   onNewEntry: () => void;
   onSignOut: () => void;
   onSendFeedback: () => void;
   onCheckFocus: () => void;
-  onOpenFeedback: () => void;
+  onOpenReview: () => void;
   canChangePassword?: boolean;
   onChangePassword?: () => void;
   onMenuOpenChange?: (open: boolean) => void;
@@ -38,7 +39,7 @@ function SignOutIcon() {
   );
 }
 
-function FeedbackIcon() {
+function AppFeedbackIcon() {
   return (
     <svg
       className="h-3.5 w-3.5"
@@ -100,7 +101,7 @@ function KeyIcon() {
   );
 }
 
-function UserIcon() {
+function AccountIcon() {
   return (
     <svg
       className="h-3.5 w-3.5"
@@ -158,39 +159,40 @@ function ChevronIcon({ open }: { open: boolean }) {
 }
 
 export function TopActionsMenu({
+  userEmail,
   onNewEntry,
   onSignOut,
   onSendFeedback,
   onCheckFocus,
-  onOpenFeedback,
+  onOpenReview,
   canChangePassword = false,
   onChangePassword,
   onMenuOpenChange,
 }: TopActionsMenuProps) {
   const [menuOpen, setMenuOpen] = useState(false);
-  const [userMenuOpen, setUserMenuOpen] = useState(false);
+  const [accountMenuOpen, setAccountMenuOpen] = useState(false);
   const [compact, setCompact] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const measureRef = useRef<HTMLDivElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    onMenuOpenChange?.(menuOpen || userMenuOpen);
-  }, [menuOpen, userMenuOpen, onMenuOpenChange]);
+    onMenuOpenChange?.(menuOpen || accountMenuOpen);
+  }, [menuOpen, accountMenuOpen, onMenuOpenChange]);
 
   const setHamburgerOpen = (open: boolean) => {
     setMenuOpen(open);
-    if (open) setUserMenuOpen(false);
+    if (open) setAccountMenuOpen(false);
   };
 
-  const setUserOpen = (open: boolean) => {
-    setUserMenuOpen(open);
+  const setAccountOpen = (open: boolean) => {
+    setAccountMenuOpen(open);
     if (open) setMenuOpen(false);
   };
 
   const closeAll = useCallback(() => {
     setMenuOpen(false);
-    setUserMenuOpen(false);
+    setAccountMenuOpen(false);
   }, []);
 
   const checkCompact = useCallback(() => {
@@ -219,7 +221,7 @@ export function TopActionsMenu({
 
     setCompact(shouldCompact);
     if (shouldCompact) {
-      setUserMenuOpen(false);
+      setAccountMenuOpen(false);
     } else {
       setMenuOpen(false);
     }
@@ -253,7 +255,7 @@ export function TopActionsMenu({
   }, [checkCompact]);
 
   useEffect(() => {
-    if (!menuOpen && !userMenuOpen) return;
+    if (!menuOpen && !accountMenuOpen) return;
 
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === "Escape") closeAll();
@@ -274,37 +276,20 @@ export function TopActionsMenu({
       document.removeEventListener("mousedown", handlePointerDown);
       document.removeEventListener("touchstart", handlePointerDown);
     };
-  }, [menuOpen, userMenuOpen, closeAll]);
+  }, [menuOpen, accountMenuOpen, closeAll]);
 
   const runAction = (action: () => void) => {
     closeAll();
     action();
   };
 
-  const userMenuItems = (
+  const accountMenuItems = (
     <>
-      <button
-        type="button"
-        role="menuitem"
-        className="top-actions-dropdown-item"
-        onClick={() => runAction(() => void onSignOut())}
-      >
-        <span className="pen" aria-hidden>
-          <SignOutIcon />
-        </span>
-        Sign out
-      </button>
-      <button
-        type="button"
-        role="menuitem"
-        className="top-actions-dropdown-item"
-        onClick={() => runAction(onSendFeedback)}
-      >
-        <span className="pen" aria-hidden>
-          <FeedbackIcon />
-        </span>
-        Send feedback
-      </button>
+      {userEmail && (
+        <p className="top-actions-dropdown-email" title={userEmail}>
+          {userEmail}
+        </p>
+      )}
       <button
         type="button"
         role="menuitem"
@@ -329,7 +314,50 @@ export function TopActionsMenu({
           Change password
         </button>
       )}
+      <button
+        type="button"
+        role="menuitem"
+        className="top-actions-dropdown-item"
+        onClick={() => runAction(onSendFeedback)}
+      >
+        <span className="pen" aria-hidden>
+          <AppFeedbackIcon />
+        </span>
+        App feedback
+      </button>
+      <div className="top-actions-dropdown-divider" role="separator" />
+      <button
+        type="button"
+        role="menuitem"
+        className="top-actions-dropdown-item"
+        onClick={() => runAction(() => void onSignOut())}
+      >
+        <span className="pen" aria-hidden>
+          <SignOutIcon />
+        </span>
+        Sign out
+      </button>
     </>
+  );
+
+  const accountTrigger = (
+    <button
+      type="button"
+      className="lnk"
+      onClick={() => setAccountOpen(!accountMenuOpen)}
+      aria-expanded={accountMenuOpen}
+      aria-haspopup="menu"
+      aria-label="Account menu"
+      title="Account"
+    >
+      <span className="pen" aria-hidden>
+        <AccountIcon />
+      </span>
+      <span className="btn-label">Account</span>
+      <span className="pen" aria-hidden>
+        <ChevronIcon open={accountMenuOpen} />
+      </span>
+    </button>
   );
 
   const inlineActions = (
@@ -345,35 +373,17 @@ export function TopActionsMenu({
         </span>
         <span className="btn-label">New entry</span>
       </button>
-      <div className="top-actions-user">
-        <button
-          type="button"
-          className="lnk"
-          onClick={() => setUserOpen(!userMenuOpen)}
-          aria-expanded={userMenuOpen}
-          aria-haspopup="menu"
-          aria-label="User menu"
-          title="User"
-        >
-          <span className="pen" aria-hidden>
-            <UserIcon />
-          </span>
-          <span className="btn-label">User</span>
-          <span className="pen" aria-hidden>
-            <ChevronIcon open={userMenuOpen} />
-          </span>
-        </button>
-      </div>
+      <div className="top-actions-account">{accountTrigger}</div>
       <button
         type="button"
-        onClick={onOpenFeedback}
+        onClick={onOpenReview}
         className="feedback-btn"
-        aria-label="Feedback"
+        aria-label="Review entry"
       >
         <span className="pen" aria-hidden>
           ✎
         </span>
-        <span className="btn-label">Feedback</span>
+        <span className="btn-label">Review</span>
       </button>
     </>
   );
@@ -413,19 +423,19 @@ export function TopActionsMenu({
                 New entry
               </button>
               <div className="top-actions-dropdown-group">
-                <p className="top-actions-dropdown-label">User</p>
-                {userMenuItems}
+                <p className="top-actions-dropdown-label">Account</p>
+                {accountMenuItems}
               </div>
               <button
                 type="button"
                 role="menuitem"
                 className="top-actions-dropdown-item"
-                onClick={() => runAction(onOpenFeedback)}
+                onClick={() => runAction(onOpenReview)}
               >
                 <span className="pen" aria-hidden>
                   ✎
                 </span>
-                Feedback
+                Review
               </button>
             </div>
           )}
@@ -443,40 +453,24 @@ export function TopActionsMenu({
             </span>
             <span className="btn-label">New entry</span>
           </button>
-          <div ref={menuRef} className="top-actions-user">
-            <button
-              type="button"
-              className="lnk"
-              onClick={() => setUserOpen(!userMenuOpen)}
-              aria-expanded={userMenuOpen}
-              aria-haspopup="menu"
-              aria-label="User menu"
-              title="User"
-            >
-              <span className="pen" aria-hidden>
-                <UserIcon />
-              </span>
-              <span className="btn-label">User</span>
-              <span className="pen" aria-hidden>
-                <ChevronIcon open={userMenuOpen} />
-              </span>
-            </button>
-            {userMenuOpen && (
+          <div ref={menuRef} className="top-actions-account">
+            {accountTrigger}
+            {accountMenuOpen && (
               <div className="top-actions-dropdown" role="menu">
-                {userMenuItems}
+                {accountMenuItems}
               </div>
             )}
           </div>
           <button
             type="button"
-            onClick={onOpenFeedback}
+            onClick={onOpenReview}
             className="feedback-btn"
-            aria-label="Feedback"
+            aria-label="Review entry"
           >
             <span className="pen" aria-hidden>
               ✎
             </span>
-            <span className="btn-label">Feedback</span>
+            <span className="btn-label">Review</span>
           </button>
         </>
       )}

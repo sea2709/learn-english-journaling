@@ -177,7 +177,7 @@ export async function processFacebookDataDeletion(
       error instanceof Error ? error.message : "An unexpected error occurred.";
     await markRequest(admin, pending.confirmationCode, {
       status: "failed",
-      message: `We could not complete your deletion request automatically (${detail}). Please contact us through the in-app Send feedback feature or try again later.`,
+      message: `We could not complete your deletion request automatically (${detail}). Please contact us through the in-app App feedback feature or try again later.`,
     });
   }
 

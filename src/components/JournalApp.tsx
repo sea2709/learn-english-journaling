@@ -33,6 +33,7 @@ import {
   createParagraph,
   findTodaysEntry,
   formatTodayDisplay,
+  formatTodayISO,
   getTextBlocks,
   hasAnalyzableContent,
   isTextBlock,
@@ -65,6 +66,7 @@ function userCanChangePassword(user: User): boolean {
 
 export function JournalApp({ user }: { user: User }) {
   const [title, setTitle] = useState(() => formatTodayDisplay());
+  const [entryDate, setEntryDate] = useState(() => formatTodayISO());
   const [blocks, setBlocks] = useState<EntryBlock[]>(() => [createParagraph()]);
   const [activeBlockId, setActiveBlockId] = useState<string | null>(null);
   const [analyzingParagraphId, setAnalyzingParagraphId] = useState<
@@ -135,6 +137,7 @@ export function JournalApp({ user }: { user: User }) {
   const { saveStatus, isDirty, saveNow, flush, markSaved } = useAutoSaveEntry({
     entryId,
     title,
+    date: entryDate,
     blocks,
     canSave: canSaveEntry(blocks),
     debounceMs: 10_000,
@@ -156,6 +159,7 @@ export function JournalApp({ user }: { user: User }) {
     (stored: StoredJournalEntry) => {
       setSelectedId(stored.id);
       setTitle(stored.title);
+      setEntryDate(stored.date);
       setBlocks(stored.blocks);
       setEntryReview(null);
       markSaved(stored.title, stored.blocks);
@@ -683,6 +687,7 @@ export function JournalApp({ user }: { user: User }) {
     const first = createParagraph();
     const newTitle = formatTodayDisplay();
     setTitle(newTitle);
+    setEntryDate(formatTodayISO());
     setBlocks([first]);
     setActiveBlockId(first.id);
     setSelectedId(null);

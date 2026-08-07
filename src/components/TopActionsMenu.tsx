@@ -299,7 +299,7 @@ export function TopActionsMenu({
         <span className="pen" aria-hidden>
           <SettingsIcon />
         </span>
-        Check focus
+        Review focus
       </button>
       {canChangePassword && onChangePassword && (
         <button

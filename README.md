@@ -1,12 +1,12 @@
 # English Journal
 
-Learn English through daily journaling. Write paragraph by paragraph, get AI feedback on each one, customize what the AI checks, and save your entries to your Supabase account.
+Learn English through daily journaling. Write paragraph by paragraph, get AI feedback on each one, customize what the AI reviews, and save your entries to your Supabase account.
 
 ## Features
 
 - **Paragraph-by-paragraph writing** — build a journal entry over time, one paragraph at a time
-- **Per-paragraph AI feedback** — press `Ctrl+Enter` (or click Check) to analyze only the current paragraph; suggestions appear inline under each block
-- **Customizable check focus** — choose which areas AI reviews (grammar, spelling, tone, word choice, naturalness, punctuation) and set an optional learning goal; saved to your account
+- **Per-paragraph AI feedback** — press `Ctrl+Enter` (or click Review) to analyze only the current paragraph; suggestions appear inline under each block
+- **Customizable review focus** — choose which areas AI reviews (grammar, spelling, tone, word choice, naturalness, punctuation) and set an optional learning goal; saved to your account
 - **Full-entry review** — open the Feedback drawer for a holistic grammar score, tone, polished version, and suggestions across the whole entry
 - **Auto-save** — entries save automatically every 10 seconds; click Save for an immediate write
 - **Past entries drawer** — browse entries grouped by month, reload, or delete
@@ -101,11 +101,11 @@ Without an API key, the app runs in demo mode with sample analysis responses.
 ## How to use
 
 1. Register or sign in
-2. (Optional) Open **Account → Check focus** to choose which areas AI should review and add a short learning goal (e.g. "I'm preparing for IELTS")
+2. (Optional) Open **Account → Review focus** to choose which areas AI should review and add a short learning goal (e.g. "I'm preparing for IELTS")
 3. Write a paragraph in the editor
-4. Press **Ctrl+Enter** (or click **Check**; on mobile, tap **Check**) to get AI feedback on that paragraph — suggestions appear inline below the block
+4. Press **Ctrl+Enter** (or click **Review**; on mobile, tap **Review**) to get AI feedback on that paragraph — suggestions appear inline below the block
 5. Press **Enter** to add another paragraph, or **Add image** to insert a photo between blocks
-6. Open **Review** in the topbar (or hamburger menu on small screens) for a full-entry review (uses your current check focus settings)
+6. Open **Review** in the topbar (or hamburger menu on small screens) for a full-entry review (uses your current review focus settings)
 7. Entries auto-save every 10 seconds; use **Save** at the bottom of the editor for an immediate write
 8. Open **Entries** in the topbar to browse, reload, or delete past entries
 9. Use **Account → App feedback** to report bugs or share ideas with the team
@@ -134,7 +134,7 @@ Row Level Security policies enforce that `user_id = auth.uid()` on all journal a
 | Editor footer | Auto-save status + **Save** button |
 | Left drawer | Saved journal entries grouped by month |
 | Right drawer | Full-entry AI review |
-| Check focus overlay | Toggle focus areas and set an optional learning goal |
+| Review focus overlay | Toggle focus areas and set an optional learning goal |
 | App feedback overlay | Submit bug reports, ideas, or other app feedback |
 | Change password overlay | Email users: update password while signed in |
 
@@ -144,10 +144,10 @@ On phones and narrow screens, the app prioritizes writing space and touch-friend
 
 - **Topbar** — **English Journal** and **Entries** (with saved count) stay visible on the left. Other actions (**New entry**, **Account** menu items, **Review**) move into the **hamburger menu** (☰) on the right.
 - **Writing area** — paragraphs use the full screen width; the notebook left margin and red line only appear on larger screens.
-- **Paragraph feedback** — tap **Check** on a paragraph after you write it. `Ctrl+Enter` is for desktop keyboards; on mobile, use the button.
+- **Paragraph feedback** — tap **Review** on a paragraph after you write it. `Ctrl+Enter` is for desktop keyboards; on mobile, use the button.
 - **New paragraph** — press **Enter** on your keyboard, or use the on-screen keyboard’s return key.
 - **Save** — auto-save still runs every 10 seconds; tap **Save** at the bottom of the editor when you want an immediate write.
-- **Drawers & overlays** — **Entries**, **Review**, **Check focus**, **App feedback**, and **Change password** open as full-screen-friendly overlays; scroll is locked while one is open.
+- **Drawers & overlays** — **Entries**, **Review**, **Review focus**, **App feedback**, and **Change password** open as full-screen-friendly overlays; scroll is locked while one is open.
 
 ## Admin dashboard
 

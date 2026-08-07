@@ -25,7 +25,7 @@ export interface Suggestion {
   original: string;
   suggestion: string;
   explanation: string;
-  /** Per-suggestion follow-up chat; cleared when the paragraph is re-Checked. */
+  /** Per-suggestion follow-up chat; cleared when the paragraph is re-Reviewed. */
   discussion?: SuggestionMessage[];
 }
 
@@ -46,7 +46,7 @@ export interface JournalParagraph {
   text: string;
   analysis: AnalysisResult | null;
   analyzedText: string | null;
-  /** Paragraph-level follow-up chat; persists across re-Check. */
+  /** Paragraph-level follow-up chat; persists across re-Review. */
   discussion?: SuggestionMessage[];
 }
 

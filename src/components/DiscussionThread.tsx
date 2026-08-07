@@ -67,7 +67,7 @@ export function DiscussionThread({
   error,
   label = "Ask about this",
   placeholder = "Why is this better? When should I use it?",
-  atLimitMessage = `This conversation reached the ${MAX_SUGGESTION_DISCUSSION_MESSAGES}-message limit. Re-Check the paragraph to start fresh notes.`,
+  atLimitMessage = `This conversation reached the ${MAX_SUGGESTION_DISCUSSION_MESSAGES}-message limit. Re-Review the paragraph to start fresh notes.`,
   submitLabel = "Ask",
   submittingLabel = "Asking…",
   className = "mt-3 space-y-2 border-t border-paper-line/50 pt-3",

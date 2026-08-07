@@ -405,7 +405,7 @@ function buildParagraphDiscussionPrompt(
 
     analysisContext = `
 
-Optional Check notes for this paragraph (use when relevant; do not invent extras):
+Optional Review notes for this paragraph (use when relevant; do not invent extras):
 Tone: ${analysis.tone}
 Grammar score: ${analysis.grammarScore}/100
 Summary: ${analysis.summary}

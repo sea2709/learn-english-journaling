@@ -68,7 +68,7 @@ export default function PrivacyPolicyPage() {
       <section className="space-y-3">
         <h2>3. AI processing</h2>
         <p>
-          When you use Check or full-entry Review, the text you submit for
+          When you use paragraph Review or full-entry Review, the text you submit for
           analysis is sent to a third-party AI provider (such as Google Gemini
           or OpenAI, depending on our configuration) to generate suggestions
           and scores. Do not include sensitive personal information in journal

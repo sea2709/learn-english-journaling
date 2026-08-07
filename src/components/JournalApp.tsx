@@ -255,7 +255,7 @@ export function JournalApp({ user }: { user: User }) {
           const text =
             error instanceof ApiError
               ? error.message
-              : "Failed to load check focus settings.";
+              : "Failed to load review focus settings.";
           setMessage({ type: "error", text });
         }
       } finally {
@@ -399,7 +399,7 @@ export function JournalApp({ user }: { user: User }) {
     );
 
     if (!paragraph?.analysis || !suggestion) {
-      throw new Error("Suggestion not found. Try Check again.");
+      throw new Error("Suggestion not found. Try Review again.");
     }
 
     const discussion = suggestion.discussion ?? [];
@@ -572,12 +572,12 @@ export function JournalApp({ user }: { user: User }) {
       const saved = await savePreferences(next);
       setAnalysisPreferences(saved);
       setPreferencesOpen(false);
-      setMessage({ type: "success", text: "Check focus updated" });
+      setMessage({ type: "success", text: "Review focus updated" });
     } catch (error) {
       const text =
         error instanceof ApiError
           ? error.message
-          : "Failed to save check focus settings.";
+          : "Failed to save review focus settings.";
       setPreferencesError(text);
     } finally {
       setPreferencesSaving(false);

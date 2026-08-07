@@ -448,7 +448,7 @@ export function ParagraphBlock({
                     ✓
                   </span>
                 )}
-                {isAnalyzing ? "Checking" : "Check"}
+                {isAnalyzing ? "Reviewing" : "Review"}
               </button>
 
               {askOpen && (
@@ -498,7 +498,7 @@ export function ParagraphBlock({
           </div>
           {isActive && !preferencesLoading && (
             <p className="mt-1 text-right font-sans text-xs text-ink-500">
-              Check focus: {focusSummary}
+              Review focus: {focusSummary}
             </p>
           )}
         </div>

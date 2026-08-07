@@ -4,7 +4,7 @@ Read this document before exploring or changing the codebase. It describes archi
 
 ## What this app does
 
-A Next.js journaling app for English learners. Users write journal entries **paragraph by paragraph**, get **per-paragraph AI feedback** (grammar, tone, suggestions) inline under each block, request a **full-entry review** in a feedback drawer, and **save entries** to Supabase. Users can customize **check focus** — which areas AI reviews (grammar, spelling, tone, etc.) and an optional learning goal — persisted per account. Auth is required for persistence and preferences; analysis works without login (demo mode when no AI key is set, using default focus areas).
+A Next.js journaling app for English learners. Users write journal entries **paragraph by paragraph**, get **per-paragraph AI feedback** (grammar, tone, suggestions) inline under each block, request a **full-entry review** in a feedback drawer, and **save entries** to Supabase. Users can customize **review focus** — which areas AI reviews (grammar, spelling, tone, etc.) and an optional learning goal — persisted per account. Auth is required for persistence and preferences; analysis works without login (demo mode when no AI key is set, using default focus areas).
 
 ## Tech stack
 
@@ -57,12 +57,12 @@ src/
 │   ├── JournalApp.tsx              # Main app shell & state orchestration
 │   ├── TopActionsMenu.tsx          # Topbar actions; hamburger menu below 640px
 │   ├── ParagraphEditor.tsx         # Multi-block editor (text + images)
-│   ├── ParagraphBlock.tsx          # Single paragraph + Check + inline notes
+│   ├── ParagraphBlock.tsx          # Single paragraph + Review + inline notes
 │   ├── ImageBlock.tsx              # Entry image preview + remove
 │   ├── EntryDrawer.tsx             # Past entries overlay (left)
 │   ├── FeedbackDrawer.tsx          # Full-entry review overlay (right)
 │   ├── FeedbackForm.tsx            # User feedback overlay (bug / idea / other)
-│   ├── CheckFocusSettings.tsx      # Check focus overlay (focus areas + learning goal)
+│   ├── CheckFocusSettings.tsx      # Review focus overlay (focus areas + learning goal)
 │   ├── SuggestionRow.tsx           # Collapsible suggestion row + optional ask-AI thread
 │   ├── DiscussionThread.tsx        # Shared ask-AI message list + input (suggestion + paragraph)
 │   ├── ScoreRing.tsx               # Grammar score ring (0–10 display)
@@ -169,13 +169,13 @@ flowchart TB
 
 ### Request flow: analyze paragraph
 
-1. User presses **Ctrl+Enter** or **Check** on a `ParagraphBlock`.
+1. User presses **Ctrl+Enter** or **Review** on a `ParagraphBlock`.
 2. `JournalApp.handleAnalyzeParagraph` calls `analyzeText(text, analysisPreferences)` from `lib/api.ts`.
 3. `POST /api/analyze` validates text (non-empty, ≤ 5000 chars) and optional `preferences` (defaults to all focus areas).
 4. If no AI API key → `getMockAnalysis()`; else `lib/ai.ts` `generateObject()` with Zod schema. Prompts and post-filtering respect `preferences.focusAreas` and `preferences.customNote`. Each suggestion gets an app-assigned `id` via `withSuggestionIds()`.
 5. Result stored on the paragraph as `{ analysis, analyzedText }` in React state (and persisted on entry save via `analysis` / `analyzed_text`). Paragraph-level `discussion` is left unchanged.
 6. Inline `SuggestionRow` components under the paragraph show suggestions; stale edits are flagged via `isParagraphStale()`.
-7. Re-Check replaces `analysis` entirely (including any per-suggestion `discussion` threads). Paragraph-level `discussion` survives re-Check.
+7. Re-Review replaces `analysis` entirely (including any per-suggestion `discussion` threads). Paragraph-level `discussion` survives re-Review.
 
 ### Request flow: ask about a suggestion
 
@@ -187,10 +187,10 @@ flowchart TB
 
 ### Request flow: ask about a paragraph
 
-1. User clicks **Ask more** next to **Check** on a non-empty text block; a popover opens with the paragraph chat (available before or after Check; Review drawer stays view-only).
+1. User clicks **Ask more** next to **Review** on a non-empty text block; a popover opens with the paragraph chat (available before or after Review; Review drawer stays view-only).
 2. `JournalApp.handleAskParagraph` calls `askAboutParagraph()` with current paragraph text, optional `analysis`, prior `discussion` messages, and preferences.
 3. `POST /api/analyze/paragraph-chat` validates payload (paragraph ≤ 5000 chars, message ≤ 1000 chars, ≤ 20 stored messages after the reply).
-4. If no AI API key → `getMockParagraphReply()`; else `discussParagraph()` via `generateText` with a paragraph-scoped system prompt (includes Check notes when present).
+4. If no AI API key → `getMockParagraphReply()`; else `discussParagraph()` via `generateText` with a paragraph-scoped system prompt (includes Review notes when present).
 5. User + assistant turns are appended to `paragraph.discussion`; auto-save persists the `discussion` JSONB column.
 
 ### Request flow: full-entry review
@@ -203,14 +203,14 @@ flowchart TB
 
 The topbar Review control opens the full-entry review drawer. Paragraph-level suggestion counts are shown inline under each block, not as a topbar badge.
 
-### Request flow: check focus preferences
+### Request flow: review focus preferences
 
 1. On sign-in, `JournalApp` calls `fetchPreferences()` → `GET /api/preferences`.
 2. `getPreferencesForUser()` in `preferences-db.ts` returns existing row or inserts defaults (`DEFAULT_ANALYSIS_PREFERENCES` from `analysis-preferences.ts`).
-3. User opens **Check focus** from the Account menu → `CheckFocusSettings` overlay.
+3. User opens **Review focus** from the Account menu → `CheckFocusSettings` overlay.
 4. User toggles focus areas (at least one required) and optionally sets a learning goal (≤ 300 chars).
 5. Save calls `savePreferences()` → `PATCH /api/preferences` → `upsertPreferencesForUser()`.
-6. Updated preferences are passed to subsequent paragraph checks and entry reviews.
+6. Updated preferences are passed to subsequent paragraph reviews and entry reviews.
 
 ### Request flow: save entry
 
@@ -266,7 +266,7 @@ RLS: all policies enforce `user_id = auth.uid()` (entries, preferences) or entry
 |------|---------|
 | `SuggestionCategory` | Focus area enum: `grammar`, `spelling`, `tone`, `word-choice`, `naturalness`, `punctuation` |
 | `AnalysisFocusArea` | Alias of `SuggestionCategory` |
-| `AnalysisPreferences` | User check focus: `focusAreas[]`, optional `customNote` (≤ 300 chars) |
+| `AnalysisPreferences` | User review focus: `focusAreas[]`, optional `customNote` (≤ 300 chars) |
 | `AnalysisResult` | AI output: `correctedText`, `tone`, `grammarScore`, `summary`, `suggestions[]` |
 | `EntryReviewResult` | Alias of `AnalysisResult` for full-entry review |
 | `Suggestion` | One fix: `id`, `category`, `original`, `suggestion`, `explanation`, optional `discussion[]` |
@@ -345,7 +345,7 @@ Centered single-column editor (`max-w-sheet`) with a sticky topbar and overlay d
 | Area | Component | Notes |
 |------|-----------|-------|
 | Topbar left | `JournalApp` | Brand title + **Entries** button (saved count badge) |
-| Topbar right | `TopActionsMenu` | Wide screens: New entry, **Account** menu (email, Check focus, Change password for email users, App feedback, Sign out), Review. Below 640px: hamburger with the same actions (Account items grouped under an Account section) |
+| Topbar right | `TopActionsMenu` | Wide screens: New entry, **Account** menu (email, Review focus, Change password for email users, App feedback, Sign out), Review (full entry). Below 640px: hamburger with the same actions (Account items grouped under an Account section) |
 | Center | Title + `ParagraphEditor` + save footer | Main writing area; per-paragraph feedback inline; active block shows focus summary; **Save** button and auto-save status in footer (not topbar) |
 | Left overlay | `EntryDrawer` | Past entries grouped by month; new entry, refresh, delete |
 | Right overlay | `FeedbackDrawer` | Full-entry AI review on demand; shows current focus summary |
@@ -355,7 +355,7 @@ Centered single-column editor (`max-w-sheet`) with a sticky topbar and overlay d
 
 **Mobile editor:** no left notebook margin or dot below `sm`; writing area is full width. Notebook margin (`pl-14` + `.notebook-margin::before` dot) applies from `sm` up.
 
-Key CSS utilities in `globals.css`: `.topbar`, `.topbar-left`, `.top-actions`, `.feedback-btn`, `.pen`, `.lnk`, `.notebook-margin`, `.writing-dim`, `body.drawer-open` (scroll lock when entries, review, check-focus, change-password, or app-feedback overlay is open).
+Key CSS utilities in `globals.css`: `.topbar`, `.topbar-left`, `.top-actions`, `.feedback-btn`, `.pen`, `.lnk`, `.notebook-margin`, `.writing-dim`, `body.drawer-open` (scroll lock when entries, review, review-focus, change-password, or app-feedback overlay is open).
 
 ## Conventions for agents
 
@@ -402,7 +402,7 @@ Use lowercase kebab-case for the slug (2–5 words from the ticket title). One t
 | Task | Files |
 |------|-------|
 | Change AI prompt or output shape | `src/lib/ai.ts` (also update `types.ts` + UI if schema changes) |
-| Check focus / analysis preferences | `CheckFocusSettings.tsx`, `analysis-preferences.ts`, `preferences-db.ts`, `app/api/preferences/`, `JournalApp.tsx`, `ai.ts` |
+| Review focus / analysis preferences | `CheckFocusSettings.tsx`, `analysis-preferences.ts`, `preferences-db.ts`, `app/api/preferences/`, `JournalApp.tsx`, `ai.ts` |
 | Add API endpoint | `src/app/api/...`, wrapper in `src/lib/api.ts` |
 | Change save/load logic | `src/lib/entries-db.ts`, `src/app/api/entries/` |
 | DB schema / RLS | `supabase/schema.sql` |

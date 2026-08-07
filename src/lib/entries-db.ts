@@ -161,7 +161,6 @@ export async function upsertEntryForUser(
       .from("journal_entries")
       .update({
         title: entry.title,
-        date: entry.date,
         status: entry.status,
       })
       .eq("id", entry.id)

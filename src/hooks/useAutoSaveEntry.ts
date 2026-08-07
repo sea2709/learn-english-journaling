@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { saveEntry } from "@/lib/api";
-import { formatTodayDisplay, formatTodayISO } from "@/lib/entry-utils";
+import { formatTodayDisplay } from "@/lib/entry-utils";
 import type { EntryBlock, StoredJournalEntry } from "@/lib/types";
 
 export type SaveStatus = "idle" | "pending" | "saving" | "saved" | "error";
@@ -15,6 +15,7 @@ export interface SaveResult {
 interface UseAutoSaveEntryOptions {
   entryId: string;
   title: string;
+  date: string;
   blocks: EntryBlock[];
   canSave: boolean;
   debounceMs?: number;
@@ -28,12 +29,13 @@ function serializeSnapshot(title: string, blocks: EntryBlock[]): string {
 function buildEntry(
   entryId: string,
   title: string,
+  date: string,
   blocks: EntryBlock[]
 ): StoredJournalEntry {
   return {
     id: entryId,
     title: title.trim() || formatTodayDisplay(),
-    date: formatTodayISO(),
+    date,
     blocks,
     status: "saved",
   };
@@ -42,6 +44,7 @@ function buildEntry(
 export function useAutoSaveEntry({
   entryId,
   title,
+  date,
   blocks,
   canSave,
   debounceMs = 10_000,
@@ -57,6 +60,7 @@ export function useAutoSaveEntry({
 
   const entryIdRef = useRef(entryId);
   const titleRef = useRef(title);
+  const dateRef = useRef(date);
   const blocksRef = useRef(blocks);
   const canSaveRef = useRef(canSave);
   const onSavedRef = useRef(onSaved);
@@ -68,6 +72,7 @@ export function useAutoSaveEntry({
   useEffect(() => {
     entryIdRef.current = entryId;
     titleRef.current = title;
+    dateRef.current = date;
     blocksRef.current = blocks;
     canSaveRef.current = canSave;
     onSavedRef.current = onSaved;
@@ -108,7 +113,12 @@ export function useAutoSaveEntry({
 
     try {
       const saved = await saveEntry(
-        buildEntry(entryIdRef.current, titleRef.current, blocksRef.current)
+        buildEntry(
+          entryIdRef.current,
+          titleRef.current,
+          dateRef.current,
+          blocksRef.current
+        )
       );
       lastSavedSnapshotRef.current = snapshot;
       setLastSavedSnapshot(snapshot);

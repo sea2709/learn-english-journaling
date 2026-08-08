@@ -5,6 +5,7 @@ import { createPortal } from "react-dom";
 import { MAX_SUGGESTION_DISCUSSION_MESSAGES } from "@/lib/suggestion-discussion";
 import type { Suggestion, SuggestionCategory } from "@/lib/types";
 import { DiscussionThread } from "./DiscussionThread";
+import { characterOffsetFromPoint } from "@/lib/caret-from-point";
 import { suggestionMarkDomId } from "@/lib/suggestion-anchors";
 
 const categoryLabels: Record<SuggestionCategory, string> = {
@@ -178,17 +179,14 @@ export function SuggestionHighlight({
     }
   };
 
-  const caretOffsetFromClientX = (clientX: number) => {
+  const caretOffsetFromPoint = (clientX: number, clientY: number) => {
     const mark = markRef.current;
     if (!mark || text.length === 0) return startOffset;
-    const rect = mark.getBoundingClientRect();
-    if (rect.width <= 0) return startOffset;
-    const ratio = Math.max(0, Math.min(1, (clientX - rect.left) / rect.width));
-    return startOffset + Math.round(ratio * text.length);
+    return startOffset + characterOffsetFromPoint(mark, clientX, clientY);
   };
 
-  const placeCaret = (clientX: number) => {
-    onPlaceCaret(caretOffsetFromClientX(clientX));
+  const placeCaret = (clientX: number, clientY: number) => {
+    onPlaceCaret(caretOffsetFromPoint(clientX, clientY));
   };
 
   const panel =
@@ -288,7 +286,7 @@ export function SuggestionHighlight({
           if (event.detail >= 2) return;
           event.preventDefault();
           event.stopPropagation();
-          placeCaret(event.clientX);
+          placeCaret(event.clientX, event.clientY);
         }}
         onClick={(event) => {
           if (!interactive) return;
@@ -311,14 +309,14 @@ export function SuggestionHighlight({
           longPressOpenedRef.current = false;
           const touch = event.touches[0];
           if (!touch) return;
-          const clientX = touch.clientX;
+          const { clientX, clientY } = touch;
           clearLongPress();
           longPressTimerRef.current = setTimeout(() => {
             longPressOpenedRef.current = true;
             onActivate(suggestion.id);
           }, 450);
           // Tentative caret; confirmed on touch end if not long-press.
-          placeCaret(clientX);
+          placeCaret(clientX, clientY);
         }}
         onTouchEnd={() => {
           clearLongPress();

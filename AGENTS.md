@@ -58,6 +58,7 @@ src/
 │   ├── TopActionsMenu.tsx          # Topbar actions; hamburger menu below 640px
 │   ├── ParagraphEditor.tsx         # Multi-block editor (text + images)
 │   ├── ParagraphBlock.tsx          # Single paragraph + Review + inline notes
+│   ├── SuggestionHighlight.tsx     # In-text highlight; desktop double-click / touch tap note
 │   ├── ImageBlock.tsx              # Entry image preview + remove
 │   ├── EntryDrawer.tsx             # Past entries overlay (left)
 │   ├── FeedbackDrawer.tsx          # Full-entry review overlay (right)
@@ -110,8 +111,10 @@ flowchart TB
     JournalApp --> ChangePasswordForm
     JournalApp --> useAutoSave["hooks/useAutoSaveEntry"]
     ParagraphEditor --> ParagraphBlock
+    ParagraphBlock --> SuggestionHighlight
     ParagraphBlock --> SuggestionRow
     ParagraphBlock --> DiscussionThread
+    SuggestionHighlight --> DiscussionThread
     SuggestionRow --> DiscussionThread
     FeedbackDrawer --> ScoreRing
     FeedbackDrawer --> SuggestionRow
@@ -174,7 +177,7 @@ flowchart TB
 3. `POST /api/analyze` validates text (non-empty, ≤ 5000 chars) and optional `preferences` (defaults to all focus areas).
 4. If no AI API key → `getMockAnalysis()`; else `lib/ai.ts` `generateObject()` with Zod schema. Prompts and post-filtering respect `preferences.focusAreas` and `preferences.customNote`. Each suggestion gets an app-assigned `id` via `withSuggestionIds()`.
 5. Result stored on the paragraph as `{ analysis, analyzedText }` in React state (and persisted on entry save via `analysis` / `analyzed_text`). Paragraph-level `discussion` is left unchanged.
-6. Inline `SuggestionRow` components under the paragraph show suggestions; stale edits are flagged via `isParagraphStale()`.
+6. In-text `SuggestionHighlight` marks open the note (double-click on desktop, tap on touch; bottom sheet on small/coarse pointers). `SuggestionRow` under the paragraph lists the same notes; stale edits are flagged via `isParagraphStale()`.
 7. Re-Review replaces `analysis` entirely (including any per-suggestion `discussion` threads). Paragraph-level `discussion` survives re-Review.
 
 ### Request flow: ask about a suggestion
@@ -409,8 +412,8 @@ Use lowercase kebab-case for the slug (2–5 words from the ticket title). One t
 | Auth providers / forms | `AuthForm.tsx`, `SocialAuthButtons.tsx`, `ResetPasswordForm.tsx`, `ChangePasswordForm.tsx`, `TopActionsMenu.tsx`, `JournalApp.tsx`, Supabase dashboard |
 | Facebook data deletion callback | `app/api/facebook/data-deletion/`, `facebook-signed-request.ts`, `data-deletion.ts`, `app/deletion/[code]/`, `schema.sql` |
 | Editor behavior | `ParagraphEditor.tsx`, `ParagraphBlock.tsx`, `JournalApp.tsx`, `hooks/useAutoSaveEntry.ts` |
-| Inline paragraph feedback | `ParagraphBlock.tsx`, `SuggestionRow.tsx` |
-| Ask about a suggestion | `SuggestionRow.tsx`, `DiscussionThread.tsx`, `JournalApp.tsx`, `ai.ts` (`discussSuggestion`), `app/api/analyze/suggestion-chat/`, `suggestion-discussion.ts` |
+| Inline paragraph feedback | `ParagraphBlock.tsx`, `SuggestionHighlight.tsx`, `SuggestionRow.tsx` |
+| Ask about a suggestion | `SuggestionHighlight.tsx`, `SuggestionRow.tsx`, `DiscussionThread.tsx`, `JournalApp.tsx`, `ai.ts` (`discussSuggestion`), `app/api/analyze/suggestion-chat/`, `suggestion-discussion.ts` |
 | Ask about a paragraph | `ParagraphBlock.tsx`, `DiscussionThread.tsx`, `JournalApp.tsx`, `ai.ts` (`discussParagraph`), `app/api/analyze/paragraph-chat/`, `suggestion-discussion.ts` |
 | Full-entry review drawer | `FeedbackDrawer.tsx`, `ScoreRing.tsx`, `JournalApp.tsx` |
 | Entries drawer | `EntryDrawer.tsx`, `entry-utils.groupEntriesByMonth()`, `entry-utils.toListItem()` |

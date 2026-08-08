@@ -1,6 +1,13 @@
 "use client";
 
-import { useEffect, useId, useLayoutEffect, useRef, useState } from "react";
+import {
+  useEffect,
+  useId,
+  useLayoutEffect,
+  useRef,
+  useState,
+  useSyncExternalStore,
+} from "react";
 import { createPortal } from "react-dom";
 import { MAX_SUGGESTION_DISCUSSION_MESSAGES } from "@/lib/suggestion-discussion";
 import type { Suggestion, SuggestionCategory } from "@/lib/types";
@@ -17,6 +24,12 @@ const categoryLabels: Record<SuggestionCategory, string> = {
   punctuation: "Punctuation",
 };
 
+const TAP_MOVE_THRESHOLD_PX = 10;
+const TAP_MAX_DURATION_MS = 400;
+
+const actionLinkClass =
+  "shrink-0 font-sans text-xs text-ink-500 no-underline hover:text-pen hover:underline hover:decoration-pen/60 hover:underline-offset-2";
+
 interface SuggestionHighlightProps {
   suggestion: Suggestion;
   text: string;
@@ -27,7 +40,7 @@ interface SuggestionHighlightProps {
   /** Brief flash when jumped to from the notes list. */
   pulsing?: boolean;
   onActivate: (suggestionId: string | null) => void;
-  /** Place the textarea caret for editing (single click / tap). */
+  /** Place the textarea caret for editing. */
   onPlaceCaret: (offset: number) => void;
   /** Jump to the matching note in the list below. */
   onRevealInNotes?: () => void;
@@ -36,11 +49,27 @@ interface SuggestionHighlightProps {
 }
 
 interface PanelCoords {
+  sheet: boolean;
   top?: number;
   bottom?: number;
   left: number;
   maxHeight: number;
 }
+
+function shouldTapToOpenNote(pointerType: string): boolean {
+  if (pointerType === "touch") return true;
+  if (pointerType === "pen") return false;
+  return (
+    pointerType === "mouse" &&
+    window.matchMedia("(hover: none) and (pointer: coarse)").matches
+  );
+}
+
+function prefersSheetLayout(): boolean {
+  return window.matchMedia("(max-width: 639px), (pointer: coarse)").matches;
+}
+
+const subscribeNoop = () => () => {};
 
 export function SuggestionHighlight({
   suggestion,
@@ -62,9 +91,14 @@ export function SuggestionHighlight({
   const [draft, setDraft] = useState("");
   const [localError, setLocalError] = useState<string | null>(null);
   const [coords, setCoords] = useState<PanelCoords | null>(null);
-  const [mounted, setMounted] = useState(false);
-  const longPressTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const longPressOpenedRef = useRef(false);
+  const mounted = useSyncExternalStore(subscribeNoop, () => true, () => false);
+  const touchOriginRef = useRef<{ x: number; y: number; at: number } | null>(
+    null
+  );
+  const touchMovedRef = useRef(false);
+  const suppressClickRef = useRef(false);
+  const editOffsetRef = useRef(startOffset);
+  const lastPointerTypeRef = useRef<string>("mouse");
 
   const label = categoryLabels[suggestion.category] ?? suggestion.category;
   const discussion = suggestion.discussion ?? [];
@@ -73,19 +107,11 @@ export function SuggestionHighlight({
   const showPreview = interactive && hovering && !active;
 
   useEffect(() => {
-    setMounted(true);
-    return () => {
-      if (longPressTimerRef.current) {
-        clearTimeout(longPressTimerRef.current);
-      }
-    };
-  }, []);
+    if (!active) editOffsetRef.current = startOffset;
+  }, [active, startOffset]);
 
   useLayoutEffect(() => {
-    if (!active) {
-      setCoords(null);
-      return;
-    }
+    if (!active) return;
 
     const GAP = 8;
     const PANEL_WIDTH = Math.min(320, window.innerWidth - 16);
@@ -93,6 +119,19 @@ export function SuggestionHighlight({
     const updatePosition = () => {
       const mark = markRef.current;
       if (!mark) return;
+
+      if (prefersSheetLayout()) {
+        setCoords({
+          sheet: true,
+          left: 0,
+          bottom: 0,
+          maxHeight: Math.max(
+            200,
+            Math.min(window.innerHeight * 0.72, window.innerHeight - 16)
+          ),
+        });
+        return;
+      }
 
       const rect = mark.getBoundingClientRect();
       const spaceBelow = Math.max(0, window.innerHeight - rect.bottom - GAP);
@@ -109,6 +148,7 @@ export function SuggestionHighlight({
       left = Math.max(8, left);
 
       setCoords({
+        sheet: false,
         top: placement === "below" ? rect.bottom + GAP : undefined,
         bottom:
           placement === "above"
@@ -131,7 +171,7 @@ export function SuggestionHighlight({
   useEffect(() => {
     if (!active) return;
 
-    const handlePointerDown = (event: MouseEvent | TouchEvent) => {
+    const handlePointerDown = (event: PointerEvent) => {
       const target = event.target as Node;
       if (panelRef.current?.contains(target)) return;
       if (markRef.current?.contains(target)) return;
@@ -142,12 +182,10 @@ export function SuggestionHighlight({
       if (event.key === "Escape") onActivate(null);
     };
 
-    document.addEventListener("mousedown", handlePointerDown);
-    document.addEventListener("touchstart", handlePointerDown);
+    document.addEventListener("pointerdown", handlePointerDown);
     document.addEventListener("keydown", handleKeyDown);
     return () => {
-      document.removeEventListener("mousedown", handlePointerDown);
-      document.removeEventListener("touchstart", handlePointerDown);
+      document.removeEventListener("pointerdown", handlePointerDown);
       document.removeEventListener("keydown", handleKeyDown);
     };
   }, [active, onActivate]);
@@ -172,13 +210,6 @@ export function SuggestionHighlight({
     }
   };
 
-  const clearLongPress = () => {
-    if (longPressTimerRef.current) {
-      clearTimeout(longPressTimerRef.current);
-      longPressTimerRef.current = null;
-    }
-  };
-
   const caretOffsetFromPoint = (clientX: number, clientY: number) => {
     const mark = markRef.current;
     if (!mark || text.length === 0) return startOffset;
@@ -189,76 +220,144 @@ export function SuggestionHighlight({
     onPlaceCaret(caretOffsetFromPoint(clientX, clientY));
   };
 
+  const handleEdit = (event: React.MouseEvent) => {
+    event.stopPropagation();
+    const offset = editOffsetRef.current;
+    onActivate(null);
+    onPlaceCaret(offset);
+  };
+
   const panel =
     active && coords && mounted
       ? createPortal(
-          <div
-            ref={panelRef}
-            id={panelId}
-            role="dialog"
-            aria-label={`${label} note`}
-            className="fixed z-[60] flex w-[min(calc(100vw-2rem),20rem)] flex-col overflow-hidden rounded-sm border border-paper-line/80 bg-[rgb(250,247,240)] p-3 shadow-md"
-            style={{
-              left: coords.left,
-              top: coords.top,
-              bottom: coords.bottom,
-              maxHeight: coords.maxHeight,
-            }}
-            onClick={(event) => event.stopPropagation()}
-            onMouseDown={(event) => event.stopPropagation()}
-            onWheel={(event) => event.stopPropagation()}
-          >
-            <div className="flex items-start justify-between gap-2">
-              <p className="text-[11px] font-medium uppercase tracking-wide text-pen">
-                {label}
+          <>
+            {coords.sheet && (
+              <div
+                className="fixed inset-0 z-[59] bg-ink-900/20"
+                onPointerDown={(event) => {
+                  event.preventDefault();
+                  onActivate(null);
+                }}
+              />
+            )}
+            <div
+              ref={panelRef}
+              id={panelId}
+              role="dialog"
+              aria-label={`${label} note`}
+              className={
+                coords.sheet
+                  ? "fixed inset-x-0 bottom-0 z-[60] flex w-full flex-col overflow-hidden rounded-t-md border border-paper-line/80 bg-[rgb(250,247,240)] p-4 shadow-md"
+                  : "fixed z-[60] flex w-[min(calc(100vw-2rem),20rem)] flex-col overflow-hidden rounded-sm border border-paper-line/80 bg-[rgb(250,247,240)] p-3 shadow-md"
+              }
+              style={
+                coords.sheet
+                  ? { maxHeight: coords.maxHeight }
+                  : {
+                      left: coords.left,
+                      top: coords.top,
+                      bottom: coords.bottom,
+                      maxHeight: coords.maxHeight,
+                    }
+              }
+              onClick={(event) => event.stopPropagation()}
+              onPointerDown={(event) => event.stopPropagation()}
+              onWheel={(event) => event.stopPropagation()}
+            >
+              {coords.sheet && (
+                <div className="mx-auto mb-3 h-1 w-10 shrink-0 rounded-full bg-paper-line" />
+              )}
+              <div className="flex items-start justify-between gap-2">
+                <p className="text-[11px] font-medium uppercase tracking-wide text-pen">
+                  {label}
+                </p>
+                <div className="flex shrink-0 items-center gap-3">
+                  <button
+                    type="button"
+                    className={actionLinkClass}
+                    onClick={handleEdit}
+                  >
+                    Edit
+                  </button>
+                  {onRevealInNotes && (
+                    <button
+                      type="button"
+                      className={actionLinkClass}
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        onRevealInNotes();
+                      }}
+                    >
+                      View in notes
+                    </button>
+                  )}
+                  {coords.sheet && (
+                    <button
+                      type="button"
+                      className="flex min-h-11 min-w-11 items-center justify-center rounded p-1 text-ink-500 hover:bg-paper-dark hover:text-ink-800 sm:min-h-0 sm:min-w-0"
+                      aria-label="Close note"
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        onActivate(null);
+                      }}
+                    >
+                      <svg
+                        className="h-5 w-5"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                        strokeWidth={2}
+                        aria-hidden
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          d="M6 18L18 6M6 6l12 12"
+                        />
+                      </svg>
+                    </button>
+                  )}
+                </div>
+              </div>
+              <p className="mt-1 font-mono text-sm leading-relaxed text-ink-700">
+                {suggestion.original}
               </p>
-              {onRevealInNotes && (
-                <button
-                  type="button"
-                  className="shrink-0 font-sans text-xs text-ink-500 no-underline hover:text-pen hover:underline hover:decoration-pen/60 hover:underline-offset-2"
-                  onClick={(event) => {
-                    event.stopPropagation();
-                    onRevealInNotes();
-                  }}
-                >
-                  View in notes
-                </button>
+              <p className="mt-1 font-mono text-sm leading-relaxed">
+                <span className="text-ink-500">→ </span>
+                <span className="text-ink-900">{suggestion.suggestion}</span>
+              </p>
+              <p className="mt-2 font-mono text-xs leading-relaxed text-ink-600">
+                {suggestion.explanation}
+              </p>
+
+              {onAsk && (
+                <div className="mt-3 min-h-0 flex-1 border-t border-paper-line/60 pt-2">
+                  <DiscussionThread
+                    discussion={discussion}
+                    draft={draft}
+                    onDraftChange={(value) => {
+                      setDraft(value);
+                      if (localError) setLocalError(null);
+                    }}
+                    onAsk={handleAsk}
+                    asking={asking}
+                    canAsk={canAsk}
+                    atLimit={atLimit}
+                    error={localError}
+                    compactComposer
+                    collapsibleMessages
+                    composerRows={coords.sheet ? 3 : 4}
+                    className="flex min-h-0 flex-col gap-2"
+                    messagesClassName={
+                      coords.sheet
+                        ? "min-h-0 flex-1 space-y-2 overflow-y-auto overscroll-contain"
+                        : "max-h-40 space-y-2 overflow-y-auto overscroll-contain"
+                    }
+                  />
+                </div>
               )}
             </div>
-            <p className="mt-1 font-mono text-sm leading-relaxed text-ink-700">
-              {suggestion.original}
-            </p>
-            <p className="mt-1 font-mono text-sm leading-relaxed">
-              <span className="text-ink-500">→ </span>
-              <span className="text-ink-900">{suggestion.suggestion}</span>
-            </p>
-            <p className="mt-2 font-mono text-xs leading-relaxed text-ink-600">
-              {suggestion.explanation}
-            </p>
-
-            {onAsk && (
-              <div className="mt-3 min-h-0 flex-1 border-t border-paper-line/60 pt-2">
-                <DiscussionThread
-                  discussion={discussion}
-                  draft={draft}
-                  onDraftChange={(value) => {
-                    setDraft(value);
-                    if (localError) setLocalError(null);
-                  }}
-                  onAsk={handleAsk}
-                  asking={asking}
-                  canAsk={canAsk}
-                  atLimit={atLimit}
-                  error={localError}
-                  compactComposer
-                  collapsibleMessages
-                  composerRows={4}
-                  className="flex min-h-0 flex-col gap-2"
-                  messagesClassName="max-h-40 space-y-2 overflow-y-auto overscroll-contain"
-                />
-              </div>
-            )}
-          </div>,
+          </>,
           document.body
         )
       : null;
@@ -268,70 +367,88 @@ export function SuggestionHighlight({
       <mark
         ref={markRef}
         id={suggestionMarkDomId(suggestion.id)}
-        className={`suggestion-mark pointer-events-auto scroll-mt-24 rounded-[1px] ${
+        className={`suggestion-mark pointer-events-auto scroll-mt-24 rounded-[1px] touch-manipulation ${
           interactive
             ? "cursor-text suggestion-mark--interactive"
             : "suggestion-mark--stale"
         } ${active ? "suggestion-mark--active" : ""} ${
           pulsing ? "suggestion-mark--pulse" : ""
         }`}
-        title={interactive ? "Double-click or long-press for note" : undefined}
+        title={
+          interactive ? "Click to edit, double-click or tap for note" : undefined
+        }
         onMouseEnter={() => {
-          if (interactive) setHovering(true);
+          if (!interactive) return;
+          if (window.matchMedia("(hover: hover)").matches) setHovering(true);
         }}
         onMouseLeave={() => setHovering(false)}
-        onMouseDown={(event) => {
+        onPointerDown={(event) => {
           if (!interactive || event.button !== 0) return;
-          // Let double-click open the note; single click places the caret.
+          lastPointerTypeRef.current = event.pointerType;
+          if (shouldTapToOpenNote(event.pointerType)) {
+            touchOriginRef.current = {
+              x: event.clientX,
+              y: event.clientY,
+              at: Date.now(),
+            };
+            touchMovedRef.current = false;
+            return;
+          }
           if (event.detail >= 2) return;
           event.preventDefault();
           event.stopPropagation();
           placeCaret(event.clientX, event.clientY);
         }}
+        onPointerMove={(event) => {
+          const origin = touchOriginRef.current;
+          if (!origin) return;
+          if (
+            Math.hypot(event.clientX - origin.x, event.clientY - origin.y) >
+            TAP_MOVE_THRESHOLD_PX
+          ) {
+            touchMovedRef.current = true;
+          }
+        }}
+        onPointerUp={(event) => {
+          if (!interactive || !shouldTapToOpenNote(event.pointerType)) return;
+          const origin = touchOriginRef.current;
+          touchOriginRef.current = null;
+          if (!origin || touchMovedRef.current) return;
+          if (Date.now() - origin.at > TAP_MAX_DURATION_MS) return;
+          event.preventDefault();
+          event.stopPropagation();
+          suppressClickRef.current = true;
+          editOffsetRef.current = caretOffsetFromPoint(
+            event.clientX,
+            event.clientY
+          );
+          onActivate(active ? null : suggestion.id);
+        }}
+        onPointerCancel={() => {
+          touchOriginRef.current = null;
+        }}
         onClick={(event) => {
           if (!interactive) return;
           event.preventDefault();
           event.stopPropagation();
-          if (longPressOpenedRef.current) {
-            longPressOpenedRef.current = false;
-            return;
+          if (suppressClickRef.current) {
+            suppressClickRef.current = false;
           }
-          // Single click already placed caret on mousedown.
         }}
         onDoubleClick={(event) => {
           if (!interactive) return;
           event.preventDefault();
           event.stopPropagation();
+          if (shouldTapToOpenNote(lastPointerTypeRef.current)) {
+            return;
+          }
           onActivate(active ? null : suggestion.id);
-        }}
-        onTouchStart={(event) => {
-          if (!interactive) return;
-          longPressOpenedRef.current = false;
-          const touch = event.touches[0];
-          if (!touch) return;
-          const { clientX, clientY } = touch;
-          clearLongPress();
-          longPressTimerRef.current = setTimeout(() => {
-            longPressOpenedRef.current = true;
-            onActivate(suggestion.id);
-          }, 450);
-          // Tentative caret; confirmed on touch end if not long-press.
-          placeCaret(clientX, clientY);
-        }}
-        onTouchEnd={() => {
-          clearLongPress();
-        }}
-        onTouchMove={() => {
-          clearLongPress();
-        }}
-        onTouchCancel={() => {
-          clearLongPress();
         }}
         aria-expanded={active}
         aria-controls={active ? panelId : undefined}
         aria-label={
           interactive
-            ? `${label} note. Click to edit, double-click to open note.`
+            ? `${label} note. Click to edit, double-click or tap to open note.`
             : undefined
         }
         role={interactive ? "button" : undefined}

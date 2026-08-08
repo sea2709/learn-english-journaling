@@ -342,6 +342,12 @@
     background-color: rgba(176, 67, 46, 0.28);
   }
 
+  @media (hover: none) and (pointer: coarse) {
+    .suggestion-mark--interactive {
+      cursor: pointer;
+    }
+  }
+
   .suggestion-mark--stale {
     background-color: rgba(176, 67, 46, 0.08);
   }

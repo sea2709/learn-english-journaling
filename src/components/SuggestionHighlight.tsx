@@ -26,6 +26,12 @@ const categoryLabels: Record<SuggestionCategory, string> = {
 
 const TAP_MOVE_THRESHOLD_PX = 10;
 const TAP_MAX_DURATION_MS = 400;
+const ANCHOR_STALE_DISTANCE_PX = 48;
+
+interface AnchorPoint {
+  x: number;
+  y: number;
+}
 
 const actionLinkClass =
   "shrink-0 font-sans text-xs text-ink-500 no-underline hover:text-pen hover:underline hover:decoration-pen/60 hover:underline-offset-2";
@@ -69,6 +75,57 @@ function prefersSheetLayout(): boolean {
   return window.matchMedia("(max-width: 639px), (pointer: coarse)").matches;
 }
 
+function distanceToRect(x: number, y: number, rect: DOMRect): number {
+  const dx = x < rect.left ? rect.left - x : x > rect.right ? x - rect.right : 0;
+  const dy = y < rect.top ? rect.top - y : y > rect.bottom ? y - rect.bottom : 0;
+  return Math.hypot(dx, dy);
+}
+
+/** Line box nearest the click; wrapping marks span many rects. */
+function lineRectNearPoint(
+  element: Element,
+  point: AnchorPoint | null
+): DOMRect {
+  const rects = Array.from(element.getClientRects()).filter(
+    (rect) => rect.width > 0 && rect.height > 0
+  );
+  if (rects.length === 0) return element.getBoundingClientRect();
+
+  const visible =
+    rects.find((rect) => rect.bottom > 0 && rect.top < window.innerHeight) ??
+    rects[0];
+
+  if (!point) return visible;
+
+  const containing = rects.find(
+    (rect) =>
+      point.x >= rect.left &&
+      point.x <= rect.right &&
+      point.y >= rect.top &&
+      point.y <= rect.bottom
+  );
+  if (containing) return containing;
+
+  let best = rects[0];
+  let bestDist = Infinity;
+  for (const rect of rects) {
+    const dist = distanceToRect(point.x, point.y, rect);
+    if (dist < bestDist) {
+      bestDist = dist;
+      best = rect;
+    }
+  }
+
+  return bestDist > ANCHOR_STALE_DISTANCE_PX ? visible : best;
+}
+
+function clampedLeft(preferred: number, panelWidth: number): number {
+  return Math.max(
+    8,
+    Math.min(preferred, window.innerWidth - panelWidth - 8)
+  );
+}
+
 const subscribeNoop = () => () => {};
 
 export function SuggestionHighlight({
@@ -88,6 +145,10 @@ export function SuggestionHighlight({
   const panelRef = useRef<HTMLDivElement>(null);
   const panelId = useId();
   const [hovering, setHovering] = useState(false);
+  const [previewCoords, setPreviewCoords] = useState<{
+    top: number;
+    left: number;
+  } | null>(null);
   const [draft, setDraft] = useState("");
   const [localError, setLocalError] = useState<string | null>(null);
   const [coords, setCoords] = useState<PanelCoords | null>(null);
@@ -99,6 +160,7 @@ export function SuggestionHighlight({
   const suppressClickRef = useRef(false);
   const editOffsetRef = useRef(startOffset);
   const lastPointerTypeRef = useRef<string>("mouse");
+  const anchorPointRef = useRef<AnchorPoint | null>(null);
 
   const label = categoryLabels[suggestion.category] ?? suggestion.category;
   const discussion = suggestion.discussion ?? [];
@@ -107,7 +169,10 @@ export function SuggestionHighlight({
   const showPreview = interactive && hovering && !active;
 
   useEffect(() => {
-    if (!active) editOffsetRef.current = startOffset;
+    if (!active) {
+      editOffsetRef.current = startOffset;
+      anchorPointRef.current = null;
+    }
   }, [active, startOffset]);
 
   useLayoutEffect(() => {
@@ -133,7 +198,8 @@ export function SuggestionHighlight({
         return;
       }
 
-      const rect = mark.getBoundingClientRect();
+      const point = anchorPointRef.current;
+      const rect = lineRectNearPoint(mark, point);
       const spaceBelow = Math.max(0, window.innerHeight - rect.bottom - GAP);
       const spaceAbove = Math.max(0, rect.top - GAP);
       const placement =
@@ -143,9 +209,10 @@ export function SuggestionHighlight({
         placement === "below" ? spaceBelow : spaceAbove
       );
 
-      let left = rect.left;
-      left = Math.min(left, window.innerWidth - PANEL_WIDTH - 8);
-      left = Math.max(8, left);
+      const useClickX =
+        point != null &&
+        distanceToRect(point.x, point.y, rect) <= ANCHOR_STALE_DISTANCE_PX;
+      const left = clampedLeft(useClickX ? point.x : rect.left, PANEL_WIDTH);
 
       setCoords({
         sheet: false,
@@ -218,6 +285,20 @@ export function SuggestionHighlight({
 
   const placeCaret = (clientX: number, clientY: number) => {
     onPlaceCaret(caretOffsetFromPoint(clientX, clientY));
+  };
+
+  const updatePreviewFromPoint = (clientX: number, clientY: number) => {
+    const mark = markRef.current;
+    if (!mark) return;
+    const point = { x: clientX, y: clientY };
+    const rect = lineRectNearPoint(mark, point);
+    const next = {
+      top: rect.bottom + 4,
+      left: clampedLeft(point.x, Math.min(288, window.innerWidth - 16)),
+    };
+    setPreviewCoords((prev) =>
+      prev && prev.top === next.top && prev.left === next.left ? prev : next
+    );
   };
 
   const handleEdit = (event: React.MouseEvent) => {
@@ -377,14 +458,28 @@ export function SuggestionHighlight({
         title={
           interactive ? "Click to edit, double-click or tap for note" : undefined
         }
-        onMouseEnter={() => {
+        onMouseEnter={(event) => {
           if (!interactive) return;
-          if (window.matchMedia("(hover: hover)").matches) setHovering(true);
+          if (!window.matchMedia("(hover: hover)").matches) return;
+          setHovering(true);
+          updatePreviewFromPoint(event.clientX, event.clientY);
         }}
-        onMouseLeave={() => setHovering(false)}
+        onMouseMove={(event) => {
+          if (!interactive || !hovering) return;
+          updatePreviewFromPoint(event.clientX, event.clientY);
+        }}
+        onMouseLeave={() => {
+          setHovering(false);
+          setPreviewCoords(null);
+        }}
         onPointerDown={(event) => {
           if (!interactive || event.button !== 0) return;
           lastPointerTypeRef.current = event.pointerType;
+          anchorPointRef.current = { x: event.clientX, y: event.clientY };
+          editOffsetRef.current = caretOffsetFromPoint(
+            event.clientX,
+            event.clientY
+          );
           if (shouldTapToOpenNote(event.pointerType)) {
             touchOriginRef.current = {
               x: event.clientX,
@@ -442,6 +537,7 @@ export function SuggestionHighlight({
           if (shouldTapToOpenNote(lastPointerTypeRef.current)) {
             return;
           }
+          anchorPointRef.current = { x: event.clientX, y: event.clientY };
           onActivate(active ? null : suggestion.id);
         }}
         aria-expanded={active}
@@ -465,24 +561,29 @@ export function SuggestionHighlight({
         {text}
       </mark>
 
-      {showPreview && (
-        <span
-          role="tooltip"
-          className="pointer-events-none absolute left-0 top-full z-40 mt-1 w-max max-w-[min(18rem,70vw)] rounded-sm border border-paper-line/80 bg-[rgb(250,247,240)] px-2.5 py-1.5 shadow-md"
-        >
-          <span className="block text-[10px] font-medium uppercase tracking-wide text-pen">
-            {label}
-          </span>
-          <span className="mt-0.5 block font-mono text-xs leading-snug text-ink-800">
-            <span className="text-ink-600">{suggestion.original}</span>
-            <span className="text-ink-500"> → </span>
-            <span>{suggestion.suggestion}</span>
-          </span>
-          <span className="mt-1 block text-[10px] text-ink-500">
-            Double-click to open
-          </span>
-        </span>
-      )}
+      {showPreview &&
+        previewCoords &&
+        mounted &&
+        createPortal(
+          <span
+            role="tooltip"
+            className="pointer-events-none fixed z-40 w-max max-w-[min(18rem,70vw)] rounded-sm border border-paper-line/80 bg-[rgb(250,247,240)] px-2.5 py-1.5 shadow-md"
+            style={{ top: previewCoords.top, left: previewCoords.left }}
+          >
+            <span className="block text-[10px] font-medium uppercase tracking-wide text-pen">
+              {label}
+            </span>
+            <span className="mt-0.5 block font-mono text-xs leading-snug text-ink-800">
+              <span className="text-ink-600">{suggestion.original}</span>
+              <span className="text-ink-500"> → </span>
+              <span>{suggestion.suggestion}</span>
+            </span>
+            <span className="mt-1 block text-[10px] text-ink-500">
+              Double-click to open
+            </span>
+          </span>,
+          document.body
+        )}
 
       {panel}
     </span>

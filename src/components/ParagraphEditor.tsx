@@ -56,6 +56,7 @@ export function ParagraphEditor({
 }: ParagraphEditorProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
+  const [notesCollapseNonce, setNotesCollapseNonce] = useState(0);
   const isWriting = activeBlockId !== null;
 
   const textBlockIndexById = new Map<string, number>();
@@ -97,6 +98,7 @@ export function ParagraphEditor({
 
     onBlocksChange(next);
     onActiveBlockChange(newParagraph.id);
+    setNotesCollapseNonce((n) => n + 1);
 
     requestAnimationFrame(() => {
       const wrapper = document.querySelector(
@@ -206,6 +208,7 @@ export function ParagraphEditor({
               onSelect={onActiveBlockChange}
               onAnalyze={onAnalyzeParagraph}
               onSplit={handleSplit}
+              notesCollapseNonce={notesCollapseNonce}
               onRemoveEmpty={handleRemoveEmptyParagraph}
               onAskSuggestion={onAskSuggestion}
               askingSuggestionId={askingSuggestionId}

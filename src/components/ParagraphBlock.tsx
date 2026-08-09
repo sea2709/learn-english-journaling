@@ -1,6 +1,13 @@
 "use client";
 
-import { useEffect, useId, useMemo, useRef, useState } from "react";
+import {
+  useEffect,
+  useId,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import type { JournalParagraph } from "@/lib/types";
 import { isParagraphStale } from "@/lib/entry-utils";
 import {
@@ -30,6 +37,8 @@ interface ParagraphBlockProps {
   onSelect: (id: string) => void;
   onAnalyze: (id: string) => void;
   onSplit: (id: string, cursorPos: number) => void;
+  /** Incremented when Enter starts a new paragraph; collapse open notes. */
+  notesCollapseNonce: number;
   onRemoveEmpty: (id: string) => void;
   onAskSuggestion: (
     paragraphId: string,
@@ -53,6 +62,7 @@ export function ParagraphBlock({
   onSelect,
   onAnalyze,
   onSplit,
+  notesCollapseNonce,
   onRemoveEmpty,
   onAskSuggestion,
   askingSuggestionId,
@@ -143,6 +153,15 @@ export function ParagraphBlock({
       ? activeSuggestionId
       : null;
   const notesOpen = notesExpanded;
+  const prevNotesCollapseNonce = useRef(notesCollapseNonce);
+
+  useLayoutEffect(() => {
+    if (notesCollapseNonce === prevNotesCollapseNonce.current) return;
+    prevNotesCollapseNonce.current = notesCollapseNonce;
+    setNotesExpanded(false);
+    setActiveSuggestionId(null);
+    setAskOpen(false);
+  }, [notesCollapseNonce]);
 
   const activateSuggestion = (suggestionId: string | null) => {
     setActiveSuggestionId(suggestionId);

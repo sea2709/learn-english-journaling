@@ -73,7 +73,7 @@ export function ParagraphBlock({
   const askPopoverRef = useRef<HTMLDivElement>(null);
   const askButtonRef = useRef<HTMLButtonElement>(null);
   const askPanelId = useId();
-  const [notesExpanded, setNotesExpanded] = useState(true);
+  const [notesExpanded, setNotesExpanded] = useState(false);
   const [askOpen, setAskOpen] = useState(false);
   const [askPlacement, setAskPlacement] = useState<"below" | "above">("below");
   const [askMaxHeight, setAskMaxHeight] = useState<number | undefined>();

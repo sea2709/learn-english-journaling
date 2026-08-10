@@ -111,6 +111,11 @@ export function ParagraphBlock({
     setSeenAnalysisEpoch(analysisEpoch);
     setDismissedSuggestionIds(new Set());
     setActiveSuggestionId(null);
+    // Review finished after mount — open this paragraph's notes.
+    // Initial load keeps notes collapsed (epoch matches on first render).
+    if (paragraph.analysis) {
+      setNotesExpanded(true);
+    }
   }
 
   const suggestionById = useMemo(() => {

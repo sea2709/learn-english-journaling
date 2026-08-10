@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { GoogleTagManager } from "@next/third-parties/google";
 import { Courier_Prime, Fraunces } from "next/font/google";
 import "./globals.css";
 
@@ -13,6 +14,8 @@ const courierPrime = Courier_Prime({
   variable: "--font-courier-prime",
 });
 
+const gtmId = process.env.NEXT_PUBLIC_GTM_ID;
+
 export const metadata: Metadata = {
   title: "English Journal — Learn by Writing",
   description:
@@ -26,6 +29,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
+      {gtmId ? <GoogleTagManager gtmId={gtmId} /> : null}
       <body
         className={`${fraunces.variable} ${courierPrime.variable} font-sans antialiased`}
       >

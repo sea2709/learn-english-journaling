@@ -331,6 +331,7 @@ See `.env.example`. Required for full functionality:
 |----------|---------|
 | `NEXT_PUBLIC_SUPABASE_URL` | Supabase project URL |
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Supabase anon key |
+| `NEXT_PUBLIC_GTM_ID` | Optional Google Tag Manager Container ID (`GTM-…`); loads via `@next/third-parties` in root layout when set |
 | `GOOGLE_GENERATIVE_AI_API_KEY` | Gemini (default provider) |
 | `AI_PROVIDER` | `google` (default) or `openai` |
 | `AI_MODEL` | e.g. `gemini-2.0-flash`, `gpt-4o-mini` |

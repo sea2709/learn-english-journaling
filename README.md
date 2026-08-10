@@ -98,6 +98,16 @@ OPENAI_API_KEY=sk-...
 
 Without an API key, the app runs in demo mode with sample analysis responses.
 
+## Google Tag Manager
+
+Optional. Set a GTM Container ID to load Google Tag Manager site-wide (typically used to fire GA4 and other tags):
+
+```env
+NEXT_PUBLIC_GTM_ID=GTM-XXXXXXX
+```
+
+Create a container at [Google Tag Manager](https://tagmanager.google.com/), copy the Container ID (`GTM-…`), and add it to `.env.local` (or your host’s env vars). Leave it unset locally to skip loading the script. Wire GA4 (or other tags) inside the GTM container. The app uses Next.js [`@next/third-parties`](https://nextjs.org/docs/app/building-your-application/optimizing/third-party-libraries#google-tag-manager) in `src/app/layout.tsx`.
+
 ## How to use
 
 1. Register or sign in

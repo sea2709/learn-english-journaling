@@ -169,16 +169,19 @@ export function ParagraphBlock({
   }, [notesCollapseNonce]);
 
   const activateSuggestion = (suggestionId: string | null) => {
+    if (suggestionId) onSelect(paragraph.id);
     setActiveSuggestionId(suggestionId);
   };
 
   const revealSuggestionInText = (suggestionId: string) => {
+    onSelect(paragraph.id);
     setActiveSuggestionId(suggestionId);
     setPulseSuggestionId(suggestionId);
     scrollSuggestionAnchor(suggestionId, "mark");
   };
 
   const revealSuggestionInNotes = (suggestionId: string) => {
+    onSelect(paragraph.id);
     setNotesExpanded(true);
     setActiveSuggestionId(suggestionId);
     setPendingNoteScrollId(suggestionId);
@@ -537,7 +540,11 @@ export function ParagraphBlock({
             type="button"
             onClick={(e) => {
               e.stopPropagation();
-              setNotesExpanded((v) => !v);
+              setNotesExpanded((v) => {
+                const next = !v;
+                if (next) onSelect(paragraph.id);
+                return next;
+              });
             }}
             className="flex items-center gap-1.5 py-1 text-[11px] font-medium uppercase tracking-wide text-pen sm:py-0"
             aria-expanded={notesOpen}

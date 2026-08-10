@@ -2,6 +2,7 @@
 
 import { Suspense, useEffect, useState } from "react";
 import type { User } from "@supabase/supabase-js";
+import { isStaleAuthError } from "@/lib/supabase/auth-errors";
 import { createClient } from "@/lib/supabase/client";
 import { AuthForm } from "./AuthForm";
 import { JournalApp } from "./JournalApp";
@@ -14,8 +15,13 @@ export function AuthGate() {
   useEffect(() => {
     const supabase = createClient();
 
-    supabase.auth.getUser().then(({ data: { user: currentUser } }) => {
-      setUser(currentUser);
+    supabase.auth.getUser().then(async ({ data: { user: currentUser }, error }) => {
+      if (isStaleAuthError(error)) {
+        await supabase.auth.signOut({ scope: "local" });
+        setUser(null);
+      } else {
+        setUser(currentUser);
+      }
       setLoading(false);
     });
 

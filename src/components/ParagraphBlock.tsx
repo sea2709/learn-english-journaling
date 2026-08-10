@@ -405,6 +405,9 @@ export function ParagraphBlock({
                     el.setSelectionRange(offset, offset);
                     onSelect(paragraph.id);
                   }}
+                  isEditorFocused={() =>
+                    document.activeElement === textareaRef.current
+                  }
                   asking={askingSuggestionId === suggestion.id}
                   onAsk={(question) =>
                     onAskSuggestion(paragraph.id, suggestion.id, question)

@@ -48,6 +48,8 @@ interface SuggestionHighlightProps {
   onActivate: (suggestionId: string | null) => void;
   /** Place the textarea caret for editing. */
   onPlaceCaret: (offset: number) => void;
+  /** True while the paragraph textarea is focused (edit after note, or typing). */
+  isEditorFocused?: () => boolean;
   /** Jump to the matching note in the list below. */
   onRevealInNotes?: () => void;
   onAsk?: (question: string) => Promise<void>;
@@ -137,6 +139,7 @@ export function SuggestionHighlight({
   pulsing = false,
   onActivate,
   onPlaceCaret,
+  isEditorFocused,
   onRevealInNotes,
   onAsk,
   asking = false,
@@ -158,6 +161,7 @@ export function SuggestionHighlight({
   );
   const touchMovedRef = useRef(false);
   const suppressClickRef = useRef(false);
+  const placedCaretOnDownRef = useRef(false);
   const editOffsetRef = useRef(startOffset);
   const lastPointerTypeRef = useRef<string>("mouse");
   const anchorPointRef = useRef<AnchorPoint | null>(null);
@@ -480,7 +484,17 @@ export function SuggestionHighlight({
             event.clientX,
             event.clientY
           );
+          placedCaretOnDownRef.current = false;
           if (shouldTapToOpenNote(event.pointerType)) {
+            // Editing: keep focus and move the caret instead of reopening the note.
+            if (isEditorFocused?.()) {
+              event.preventDefault();
+              event.stopPropagation();
+              placedCaretOnDownRef.current = true;
+              suppressClickRef.current = true;
+              placeCaret(event.clientX, event.clientY);
+              return;
+            }
             touchOriginRef.current = {
               x: event.clientX,
               y: event.clientY,
@@ -506,6 +520,10 @@ export function SuggestionHighlight({
         }}
         onPointerUp={(event) => {
           if (!interactive || !shouldTapToOpenNote(event.pointerType)) return;
+          if (placedCaretOnDownRef.current) {
+            placedCaretOnDownRef.current = false;
+            return;
+          }
           const origin = touchOriginRef.current;
           touchOriginRef.current = null;
           if (!origin || touchMovedRef.current) return;
@@ -521,6 +539,7 @@ export function SuggestionHighlight({
         }}
         onPointerCancel={() => {
           touchOriginRef.current = null;
+          placedCaretOnDownRef.current = false;
         }}
         onClick={(event) => {
           if (!interactive) return;

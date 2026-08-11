@@ -13,7 +13,10 @@ import { MAX_SUGGESTION_DISCUSSION_MESSAGES } from "@/lib/suggestion-discussion"
 import type { Suggestion, SuggestionCategory } from "@/lib/types";
 import { DiscussionThread } from "./DiscussionThread";
 import { characterOffsetFromPoint } from "@/lib/caret-from-point";
-import { suggestionMarkDomId } from "@/lib/suggestion-anchors";
+import {
+  suggestionIdFromPoint,
+  suggestionMarkDomId,
+} from "@/lib/suggestion-anchors";
 
 const categoryLabels: Record<SuggestionCategory, string> = {
   grammar: "Grammar",
@@ -357,9 +360,19 @@ export function SuggestionHighlight({
           <>
             {coords.sheet && (
               <div
-                className="fixed inset-0 z-[59] bg-ink-900/20"
+                className="suggestion-note-backdrop fixed inset-0 z-[59] bg-ink-900/20"
                 onPointerDown={(event) => {
                   event.preventDefault();
+                  // Sheet backdrop sits above the text; hit-test marks underneath
+                  // so switching highlights is one tap instead of close-then-open.
+                  const hitId = suggestionIdFromPoint(
+                    event.clientX,
+                    event.clientY
+                  );
+                  if (hitId && hitId !== suggestion.id) {
+                    onActivate(hitId);
+                    return;
+                  }
                   onActivate(null);
                 }}
               />
@@ -491,6 +504,7 @@ export function SuggestionHighlight({
       <mark
         ref={markRef}
         id={suggestionMarkDomId(suggestion.id)}
+        data-suggestion-id={suggestion.id}
         className={`suggestion-mark pointer-events-auto scroll-mt-24 rounded-[1px] touch-manipulation ${
           interactive
             ? "cursor-text suggestion-mark--interactive"

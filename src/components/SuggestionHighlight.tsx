@@ -272,6 +272,14 @@ export function SuggestionHighlight({
       ) {
         return;
       }
+      // Sheet backdrop owns dismiss vs switch (hit-tests marks underneath).
+      // If we close here too, we overwrite that switch with null in the same tap.
+      if (
+        target instanceof Element &&
+        target.classList.contains("suggestion-note-backdrop")
+      ) {
+        return;
+      }
       onActivate(null);
     };
 
@@ -363,12 +371,17 @@ export function SuggestionHighlight({
                 className="suggestion-note-backdrop fixed inset-0 z-[59] bg-ink-900/20"
                 onPointerDown={(event) => {
                   event.preventDefault();
-                  // Sheet backdrop sits above the text; hit-test marks underneath
-                  // so switching highlights is one tap instead of close-then-open.
+                  event.stopPropagation();
+                  // Sheet backdrop sits above the text. Temporarily punch through
+                  // pointer-events so hit-testing finds the mark under the tap —
+                  // then switch in one gesture instead of close-then-open.
+                  const backdrop = event.currentTarget as HTMLElement;
+                  backdrop.style.pointerEvents = "none";
                   const hitId = suggestionIdFromPoint(
                     event.clientX,
                     event.clientY
                   );
+                  backdrop.style.pointerEvents = "";
                   if (hitId && hitId !== suggestion.id) {
                     onActivate(hitId);
                     return;

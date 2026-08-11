@@ -370,7 +370,15 @@ export function ParagraphBlock({
             handleTextChange(e.target.value);
           }}
           onFocus={() => onSelect(paragraph.id)}
-          onBlur={() => setEditCaretSuggestionId(null)}
+          onBlur={() => {
+            // Tapping a mark blurs the textarea before pointer handlers re-focus
+            // it (common on long wrapped highlights). Defer clearing so Edit-caret
+            // mode survives that race.
+            window.setTimeout(() => {
+              if (document.activeElement === textareaRef.current) return;
+              setEditCaretSuggestionId(null);
+            }, 0);
+          }}
           onKeyDown={handleKeyDown}
           placeholder={
             index === 0
@@ -423,9 +431,6 @@ export function ParagraphBlock({
                     el.setSelectionRange(offset, offset);
                     onSelect(paragraph.id);
                   }}
-                  isEditorFocused={() =>
-                    document.activeElement === textareaRef.current
-                  }
                   preferCaretWhileEditing={
                     editCaretSuggestionId === suggestion.id
                   }

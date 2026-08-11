@@ -48,11 +48,9 @@ interface SuggestionHighlightProps {
   onActivate: (suggestionId: string | null) => void;
   /** Place the textarea caret for editing. */
   onPlaceCaret: (offset: number) => void;
-  /** True while the paragraph textarea is focused (edit after note, or typing). */
-  isEditorFocused?: () => boolean;
   /**
-   * When the editor is focused, taps on this mark place the caret instead of
-   * opening the note (set after Edit on this suggestion).
+   * When set (after Edit on this suggestion), taps on this mark place the caret
+   * instead of opening the note — even if the textarea briefly blurred.
    */
   preferCaretWhileEditing?: boolean;
   /** Called when the user chooses Edit in the note. */
@@ -146,7 +144,6 @@ export function SuggestionHighlight({
   pulsing = false,
   onActivate,
   onPlaceCaret,
-  isEditorFocused,
   preferCaretWhileEditing = false,
   onStartEdit,
   onRevealInNotes,
@@ -496,8 +493,10 @@ export function SuggestionHighlight({
           );
           placedCaretOnDownRef.current = false;
           if (shouldTapToOpenNote(event.pointerType)) {
-            // Same mark after Edit: keep focus and move the caret so the user can fix it.
-            if (isEditorFocused?.() && preferCaretWhileEditing) {
+            // After Edit: place caret on this mark (any line of a wrapped span).
+            // Do not require editor focus — tapping the mark often blurs the
+            // textarea before this handler runs, especially on long highlights.
+            if (preferCaretWhileEditing) {
               event.preventDefault();
               event.stopPropagation();
               placedCaretOnDownRef.current = true;
@@ -582,7 +581,7 @@ export function SuggestionHighlight({
             : undefined
         }
         role={interactive ? "button" : undefined}
-        tabIndex={interactive ? 0 : undefined}
+        tabIndex={interactive ? (preferCaretWhileEditing ? -1 : 0) : undefined}
         onKeyDown={(event) => {
           if (!interactive) return;
           if (event.key === "Enter" || event.key === " ") {

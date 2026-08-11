@@ -50,6 +50,13 @@ interface SuggestionHighlightProps {
   onPlaceCaret: (offset: number) => void;
   /** True while the paragraph textarea is focused (edit after note, or typing). */
   isEditorFocused?: () => boolean;
+  /**
+   * When the editor is focused, taps on this mark place the caret instead of
+   * opening the note (set after Edit on this suggestion).
+   */
+  preferCaretWhileEditing?: boolean;
+  /** Called when the user chooses Edit in the note. */
+  onStartEdit?: () => void;
   /** Jump to the matching note in the list below. */
   onRevealInNotes?: () => void;
   onAsk?: (question: string) => Promise<void>;
@@ -140,6 +147,8 @@ export function SuggestionHighlight({
   onActivate,
   onPlaceCaret,
   isEditorFocused,
+  preferCaretWhileEditing = false,
+  onStartEdit,
   onRevealInNotes,
   onAsk,
   asking = false,
@@ -308,6 +317,7 @@ export function SuggestionHighlight({
   const handleEdit = (event: React.MouseEvent) => {
     event.stopPropagation();
     const offset = editOffsetRef.current;
+    onStartEdit?.();
     onActivate(null);
     onPlaceCaret(offset);
   };
@@ -486,8 +496,8 @@ export function SuggestionHighlight({
           );
           placedCaretOnDownRef.current = false;
           if (shouldTapToOpenNote(event.pointerType)) {
-            // Editing: keep focus and move the caret instead of reopening the note.
-            if (isEditorFocused?.()) {
+            // Same mark after Edit: keep focus and move the caret so the user can fix it.
+            if (isEditorFocused?.() && preferCaretWhileEditing) {
               event.preventDefault();
               event.stopPropagation();
               placedCaretOnDownRef.current = true;
@@ -535,6 +545,11 @@ export function SuggestionHighlight({
             event.clientX,
             event.clientY
           );
+          // Leave edit mode so the note sheet can take over (keyboard dismisses).
+          const focused = document.activeElement;
+          if (focused instanceof HTMLTextAreaElement) {
+            focused.blur();
+          }
           onActivate(active ? null : suggestion.id);
         }}
         onPointerCancel={() => {

@@ -82,6 +82,10 @@ export function ParagraphBlock({
   const [activeSuggestionId, setActiveSuggestionId] = useState<string | null>(
     null
   );
+  /** After Edit on a note, taps on that mark place the caret instead of reopening it. */
+  const [editCaretSuggestionId, setEditCaretSuggestionId] = useState<
+    string | null
+  >(null);
   const [pulseSuggestionId, setPulseSuggestionId] = useState<string | null>(
     null
   );
@@ -111,6 +115,7 @@ export function ParagraphBlock({
     setSeenAnalysisEpoch(analysisEpoch);
     setDismissedSuggestionIds(new Set());
     setActiveSuggestionId(null);
+    setEditCaretSuggestionId(null);
     // Review finished after mount — open this paragraph's notes.
     // Initial load keeps notes collapsed (epoch matches on first render).
     if (paragraph.analysis) {
@@ -165,11 +170,15 @@ export function ParagraphBlock({
     prevNotesCollapseNonce.current = notesCollapseNonce;
     setNotesExpanded(false);
     setActiveSuggestionId(null);
+    setEditCaretSuggestionId(null);
     setAskOpen(false);
   }, [notesCollapseNonce]);
 
   const activateSuggestion = (suggestionId: string | null) => {
-    if (suggestionId) onSelect(paragraph.id);
+    if (suggestionId) {
+      onSelect(paragraph.id);
+      setEditCaretSuggestionId(null);
+    }
     setActiveSuggestionId(suggestionId);
   };
 
@@ -361,6 +370,7 @@ export function ParagraphBlock({
             handleTextChange(e.target.value);
           }}
           onFocus={() => onSelect(paragraph.id)}
+          onBlur={() => setEditCaretSuggestionId(null)}
           onKeyDown={handleKeyDown}
           placeholder={
             index === 0
@@ -416,6 +426,10 @@ export function ParagraphBlock({
                   isEditorFocused={() =>
                     document.activeElement === textareaRef.current
                   }
+                  preferCaretWhileEditing={
+                    editCaretSuggestionId === suggestion.id
+                  }
+                  onStartEdit={() => setEditCaretSuggestionId(suggestion.id)}
                   asking={askingSuggestionId === suggestion.id}
                   onAsk={(question) =>
                     onAskSuggestion(paragraph.id, suggestion.id, question)

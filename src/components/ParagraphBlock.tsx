@@ -86,6 +86,8 @@ export function ParagraphBlock({
   const [editCaretSuggestionId, setEditCaretSuggestionId] = useState<
     string | null
   >(null);
+  const editorFocusedRef = useRef(false);
+  const lastEditorBlurAtRef = useRef(0);
   const [pulseSuggestionId, setPulseSuggestionId] = useState<string | null>(
     null
   );
@@ -369,13 +371,18 @@ export function ParagraphBlock({
           onChange={(e) => {
             handleTextChange(e.target.value);
           }}
-          onFocus={() => onSelect(paragraph.id)}
+          onFocus={() => {
+            editorFocusedRef.current = true;
+            onSelect(paragraph.id);
+          }}
           onBlur={() => {
+            editorFocusedRef.current = false;
+            lastEditorBlurAtRef.current = Date.now();
             // Tapping a mark blurs the textarea before pointer handlers re-focus
             // it (common on long wrapped highlights). Defer clearing so Edit-caret
-            // mode survives that race.
+            // mode survives that race; clear once focus is truly gone.
             window.setTimeout(() => {
-              if (document.activeElement === textareaRef.current) return;
+              if (editorFocusedRef.current) return;
               setEditCaretSuggestionId(null);
             }, 0);
           }}
@@ -433,6 +440,10 @@ export function ParagraphBlock({
                   }}
                   preferCaretWhileEditing={
                     editCaretSuggestionId === suggestion.id
+                  }
+                  isEditorFocused={() => editorFocusedRef.current}
+                  msSinceEditorBlur={() =>
+                    Date.now() - lastEditorBlurAtRef.current
                   }
                   onStartEdit={() => setEditCaretSuggestionId(suggestion.id)}
                   asking={askingSuggestionId === suggestion.id}

@@ -24,8 +24,10 @@ const categoryLabels: Record<SuggestionCategory, string> = {
   punctuation: "Punctuation",
 };
 
-const TAP_MOVE_THRESHOLD_PX = 10;
-const TAP_MAX_DURATION_MS = 400;
+const TAP_MOVE_THRESHOLD_PX = 24;
+const TAP_MAX_DURATION_MS = 550;
+/** Blur→pointerdown race window after tapping a mark while editing. */
+const EDIT_BLUR_RACE_MS = 100;
 const ANCHOR_STALE_DISTANCE_PX = 48;
 
 interface AnchorPoint {
@@ -49,10 +51,14 @@ interface SuggestionHighlightProps {
   /** Place the textarea caret for editing. */
   onPlaceCaret: (offset: number) => void;
   /**
-   * When set (after Edit on this suggestion), taps on this mark place the caret
-   * instead of opening the note — even if the textarea briefly blurred.
+   * After Edit on this suggestion: taps may place the caret while the editor is
+   * focused (or in the blur race from tapping the mark).
    */
   preferCaretWhileEditing?: boolean;
+  /** True when the paragraph textarea is focused. */
+  isEditorFocused?: () => boolean;
+  /** ms since the paragraph textarea last blurred (0 if unknown). */
+  msSinceEditorBlur?: () => number;
   /** Called when the user chooses Edit in the note. */
   onStartEdit?: () => void;
   /** Jump to the matching note in the list below. */
@@ -145,6 +151,8 @@ export function SuggestionHighlight({
   onActivate,
   onPlaceCaret,
   preferCaretWhileEditing = false,
+  isEditorFocused,
+  msSinceEditorBlur,
   onStartEdit,
   onRevealInNotes,
   onAsk,
@@ -249,9 +257,18 @@ export function SuggestionHighlight({
     if (!active) return;
 
     const handlePointerDown = (event: PointerEvent) => {
-      const target = event.target as Node;
+      const target = event.target;
+      if (!(target instanceof Node)) return;
       if (panelRef.current?.contains(target)) return;
       if (markRef.current?.contains(target)) return;
+      // Let another highlight's tap open its note; don't dismiss on pointerdown
+      // or the close can race the other mark's activate on pointerup.
+      if (
+        target instanceof Element &&
+        target.closest(".suggestion-mark")
+      ) {
+        return;
+      }
       onActivate(null);
     };
 
@@ -295,6 +312,21 @@ export function SuggestionHighlight({
 
   const placeCaret = (clientX: number, clientY: number) => {
     onPlaceCaret(caretOffsetFromPoint(clientX, clientY));
+  };
+
+  const shouldPlaceCaretOnTap = () => {
+    if (!preferCaretWhileEditing) return false;
+    if (isEditorFocused?.()) return true;
+    const sinceBlur = msSinceEditorBlur?.() ?? Number.POSITIVE_INFINITY;
+    return sinceBlur < EDIT_BLUR_RACE_MS;
+  };
+
+  const releaseTapPointerCapture = (
+    event: Pick<PointerEvent, "pointerId">
+  ) => {
+    const mark = markRef.current;
+    if (!mark || !mark.hasPointerCapture(event.pointerId)) return;
+    mark.releasePointerCapture(event.pointerId);
   };
 
   const updatePreviewFromPoint = (clientX: number, clientY: number) => {
@@ -493,10 +525,10 @@ export function SuggestionHighlight({
           );
           placedCaretOnDownRef.current = false;
           if (shouldTapToOpenNote(event.pointerType)) {
-            // After Edit: place caret on this mark (any line of a wrapped span).
-            // Do not require editor focus — tapping the mark often blurs the
-            // textarea before this handler runs, especially on long highlights.
-            if (preferCaretWhileEditing) {
+            // After Edit: place caret while the editor is focused, or in the
+            // blur race from tapping this mark (common on wrapped highlights).
+            // If Edit-caret is stale (keyboard dismissed earlier), open the note.
+            if (shouldPlaceCaretOnTap()) {
               event.preventDefault();
               event.stopPropagation();
               placedCaretOnDownRef.current = true;
@@ -510,6 +542,11 @@ export function SuggestionHighlight({
               at: Date.now(),
             };
             touchMovedRef.current = false;
+            try {
+              markRef.current?.setPointerCapture(event.pointerId);
+            } catch {
+              // Some browsers throw if capture isn't allowed; tap may still work.
+            }
             return;
           }
           if (event.detail >= 2) return;
@@ -529,6 +566,7 @@ export function SuggestionHighlight({
         }}
         onPointerUp={(event) => {
           if (!interactive || !shouldTapToOpenNote(event.pointerType)) return;
+          releaseTapPointerCapture(event);
           if (placedCaretOnDownRef.current) {
             placedCaretOnDownRef.current = false;
             return;
@@ -551,7 +589,8 @@ export function SuggestionHighlight({
           }
           onActivate(active ? null : suggestion.id);
         }}
-        onPointerCancel={() => {
+        onPointerCancel={(event) => {
+          releaseTapPointerCapture(event);
           touchOriginRef.current = null;
           placedCaretOnDownRef.current = false;
         }}

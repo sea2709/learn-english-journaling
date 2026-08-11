@@ -177,7 +177,7 @@ flowchart TB
 3. `POST /api/analyze` validates text (non-empty, ≤ 5000 chars) and optional `preferences` (defaults to all focus areas).
 4. If no AI API key → `getMockAnalysis()`; else `lib/ai.ts` `generateObject()` with Zod schema. Prompts and post-filtering respect `preferences.focusAreas` and `preferences.customNote`. Each suggestion gets an app-assigned `id` via `withSuggestionIds()`.
 5. Result stored on the paragraph as `{ analysis, analyzedText }` in React state (and persisted on entry save via `analysis` / `analyzed_text`). Paragraph-level `discussion` is left unchanged.
-6. In-text `SuggestionHighlight` marks open the note (double-click on desktop, tap on touch; bottom sheet on small/coarse pointers). After **Edit** in a note, taps on that same highlight place the caret so the user can fix it; taps on other highlights open their notes instead. Taps on non-highlighted text still move the caret normally. `SuggestionRow` under the paragraph lists the same notes; stale edits are flagged via `isParagraphStale()`.
+6. In-text `SuggestionHighlight` marks open the note (double-click on desktop, tap on touch; bottom sheet on small/coarse pointers). After **Edit** in a note, taps on that same highlight (including other lines of a wrapped span) place the caret so the user can fix it; taps on other highlights open their notes instead. Taps on non-highlighted text still move the caret normally. `SuggestionRow` under the paragraph lists the same notes; stale edits are flagged via `isParagraphStale()`.
 7. Re-Review replaces `analysis` entirely (including any per-suggestion `discussion` threads). Paragraph-level `discussion` survives re-Review.
 
 ### Request flow: ask about a suggestion

@@ -194,7 +194,8 @@ export function ParagraphBlock({
   const revealSuggestionInNotes = (suggestionId: string) => {
     onSelect(paragraph.id);
     setNotesExpanded(true);
-    setActiveSuggestionId(suggestionId);
+    // Close the in-text note popover/sheet; the notes list is the destination.
+    setActiveSuggestionId(null);
     setPendingNoteScrollId(suggestionId);
   };
 

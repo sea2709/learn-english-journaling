@@ -82,6 +82,10 @@ export function ParagraphBlock({
   const [activeSuggestionId, setActiveSuggestionId] = useState<string | null>(
     null
   );
+  /** Notes-list row to keep expanded/anchored (e.g. after View in notes). */
+  const [notesFocusSuggestionId, setNotesFocusSuggestionId] = useState<
+    string | null
+  >(null);
   /** After Edit on a note, taps on that mark place the caret instead of reopening it. */
   const [editCaretSuggestionId, setEditCaretSuggestionId] = useState<
     string | null
@@ -117,6 +121,7 @@ export function ParagraphBlock({
     setSeenAnalysisEpoch(analysisEpoch);
     setDismissedSuggestionIds(new Set());
     setActiveSuggestionId(null);
+    setNotesFocusSuggestionId(null);
     setEditCaretSuggestionId(null);
     // Review finished after mount — open this paragraph's notes.
     // Initial load keeps notes collapsed (epoch matches on first render).
@@ -164,6 +169,10 @@ export function ParagraphBlock({
     activeSuggestionId && mappedSuggestionIds.has(activeSuggestionId)
       ? activeSuggestionId
       : null;
+  const effectiveNotesFocusSuggestionId =
+    notesFocusSuggestionId && mappedSuggestionIds.has(notesFocusSuggestionId)
+      ? notesFocusSuggestionId
+      : null;
   const notesOpen = notesExpanded;
   const prevNotesCollapseNonce = useRef(notesCollapseNonce);
 
@@ -172,6 +181,7 @@ export function ParagraphBlock({
     prevNotesCollapseNonce.current = notesCollapseNonce;
     setNotesExpanded(false);
     setActiveSuggestionId(null);
+    setNotesFocusSuggestionId(null);
     setEditCaretSuggestionId(null);
     setAskOpen(false);
   }, [notesCollapseNonce]);
@@ -180,12 +190,14 @@ export function ParagraphBlock({
     if (suggestionId) {
       onSelect(paragraph.id);
       setEditCaretSuggestionId(null);
+      setNotesFocusSuggestionId(null);
     }
     setActiveSuggestionId(suggestionId);
   };
 
   const revealSuggestionInText = (suggestionId: string) => {
     onSelect(paragraph.id);
+    setNotesFocusSuggestionId(null);
     setActiveSuggestionId(suggestionId);
     setPulseSuggestionId(suggestionId);
     scrollSuggestionAnchor(suggestionId, "mark");
@@ -194,8 +206,9 @@ export function ParagraphBlock({
   const revealSuggestionInNotes = (suggestionId: string) => {
     onSelect(paragraph.id);
     setNotesExpanded(true);
-    // Close the in-text note popover/sheet; the notes list is the destination.
+    // Close the in-text note popover/sheet; keep this row open in the notes list.
     setActiveSuggestionId(null);
+    setNotesFocusSuggestionId(suggestionId);
     setPendingNoteScrollId(suggestionId);
   };
 
@@ -617,9 +630,13 @@ export function ParagraphBlock({
                   key={suggestion.id}
                   suggestion={suggestion}
                   anchorId={suggestionNoteDomId(suggestion.id)}
-                  anchored={effectiveActiveSuggestionId === suggestion.id}
+                  anchored={
+                    effectiveActiveSuggestionId === suggestion.id ||
+                    effectiveNotesFocusSuggestionId === suggestion.id
+                  }
                   forceExpanded={
-                    effectiveActiveSuggestionId === suggestion.id
+                    effectiveActiveSuggestionId === suggestion.id ||
+                    effectiveNotesFocusSuggestionId === suggestion.id
                   }
                   onRevealInText={
                     mappedSuggestionIds.has(suggestion.id)

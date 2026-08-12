@@ -66,6 +66,14 @@ export function EntryDrawer({
     onClose();
   }, [onClose]);
 
+  // Only the latest month starts expanded; older months are collapsed.
+  useEffect(() => {
+    if (!open) return;
+    setCollapsedMonths(
+      new Set(monthGroups.slice(1).map((group) => group.key))
+    );
+  }, [open, monthGroups]);
+
   useEffect(() => {
     if (!open) return;
 

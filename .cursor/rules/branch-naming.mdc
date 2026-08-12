@@ -21,6 +21,7 @@ When starting work on a ticket or issue, create a branch from the default base b
 - **`<id>`** — Ticket or issue identifier (e.g. GitHub issue `#7` → `7`, Jira `PROJ-123` → `PROJ-123`).
 - **`<short-slug>`** — Lowercase kebab-case summary of the ticket (2–5 words). Use letters, numbers, and hyphens only.
 - Create the branch **before** making changes; do not commit on `main` for ticket work.
+- Create a **worktree** for the branch (see git-worktrees rule); do not do ticket work in the primary checkout.
 - One ticket per branch; keep the slug aligned with the issue title.
 
 ## Examples

@@ -1,0 +1,77 @@
+---
+description: Create a git worktree for each new branch; remove it after the PR merges
+alwaysApply: true
+---
+
+# Git worktrees
+
+Use an isolated worktree for every ticket branch. Do not do ticket work in the primary checkout on `main`.
+
+## Layout
+
+Worktrees live under the workspace (gitignored):
+
+```
+learn-english-journaling/            # primary checkout (stay on main)
+  worktrees/
+    <worktree-slug>/                 # one folder per branch
+```
+
+**`<worktree-slug>`** — branch name with `/` replaced by `-` (e.g. `feature/7-journal-topbar-header` → `feature-7-journal-topbar-header`).
+
+`worktrees/` is listed in `.gitignore` — never commit its contents.
+
+## Starting a branch
+
+After choosing the branch name (see branch-naming rule), create the branch **and** worktree from `main` in the primary repo:
+
+```bash
+git fetch origin
+mkdir -p worktrees
+git worktree add -b <prefix>/<id>-<short-slug> \
+  worktrees/<worktree-slug> \
+  main
+```
+
+If the branch already exists remotely or locally:
+
+```bash
+mkdir -p worktrees
+git worktree add \
+  worktrees/<worktree-slug> \
+  <prefix>/<id>-<short-slug>
+```
+
+Then open / continue work **inside that worktree path**.
+
+## After a PR is merged
+
+When the user says the PR merged (or merge is confirmed), clean up from the primary repo:
+
+```bash
+git worktree remove worktrees/<worktree-slug>
+git worktree prune
+git branch -d <prefix>/<id>-<short-slug>   # if still present locally
+```
+
+If the folder is gone or the worktree is broken:
+
+```bash
+git worktree prune
+rm -rf worktrees/<worktree-slug>
+```
+
+## Rules
+
+- One worktree per ticket branch; slug must match the branch.
+- Keep the primary checkout on `main` (or the default base); use worktrees for feature/bug work.
+- Create the worktree **before** making changes.
+- Delete the worktree when the PR is merged — do not leave stale folders under `worktrees/`.
+- Do not remove a worktree that still has uncommitted work without asking.
+
+## Avoid
+
+- Checking out feature branches in the primary repo when a worktree should be used
+- Sibling `-wt` folders outside the workspace
+- Reusing a worktree folder for a different branch
+- Committing anything under `worktrees/`

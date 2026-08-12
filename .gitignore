@@ -18,6 +18,9 @@
 # production
 /build
 
+# git worktrees (local checkouts per branch)
+/worktrees/
+
 # misc
 .DS_Store
 *.pem

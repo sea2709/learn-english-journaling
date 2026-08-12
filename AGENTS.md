@@ -374,6 +374,10 @@ When starting work on a tracked ticket or issue, branch from `main` before makin
 
 Use lowercase kebab-case for the slug (2–5 words from the ticket title). One ticket per branch.
 
+### Git worktrees
+
+Create a worktree for each ticket branch under `worktrees/<worktree-slug>` (branch name with `/` → `-`; folder is gitignored). Keep the primary checkout on `main`. After the PR merges, remove that worktree. Full details: [`.cursor/rules/git-worktrees.mdc`](.cursor/rules/git-worktrees.mdc).
+
 ### Do
 
 - Keep **paragraph-level** analysis — do not merge all paragraphs into one AI call unless explicitly requested. Image blocks are not analyzed.

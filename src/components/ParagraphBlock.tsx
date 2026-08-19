@@ -563,6 +563,7 @@ export function ParagraphBlock({
                     submittingLabel="Sending…"
                     collapsibleMessages
                     compactComposer
+                    autoFocus
                     className="flex min-h-0 flex-1 flex-col gap-2"
                     messagesClassName="min-h-0 flex-1 space-y-2 overflow-y-auto overscroll-contain"
                   />

@@ -35,6 +35,8 @@ interface DiscussionThreadProps {
   compactComposer?: boolean;
   /** Rows for the compact composer textarea (default 2). */
   composerRows?: number;
+  /** Focus the composer textarea when the thread mounts. */
+  autoFocus?: boolean;
 }
 
 function SendIcon({ className }: { className?: string }) {
@@ -75,6 +77,7 @@ export function DiscussionThread({
   collapsibleMessages = false,
   compactComposer = false,
   composerRows = 2,
+  autoFocus = false,
 }: DiscussionThreadProps) {
   // Explicit toggles only; unset indexes use the default (latest expanded).
   const [expandedByIndex, setExpandedByIndex] = useState<
@@ -207,6 +210,7 @@ export function DiscussionThread({
                 rows={composerRows}
                 maxLength={MAX_SUGGESTION_MESSAGE_LENGTH}
                 disabled={asking}
+                autoFocus={autoFocus}
                 placeholder={placeholder}
                 className="min-w-0 flex-1 resize-y rounded-sm border border-paper-line/70 bg-white/50 px-2 py-1.5 font-mono text-sm text-ink-800 placeholder:text-ink-400 focus:border-pen/40 focus:outline-none focus:ring-1 focus:ring-pen/30 disabled:opacity-60"
               />
@@ -240,6 +244,7 @@ export function DiscussionThread({
               rows={2}
               maxLength={MAX_SUGGESTION_MESSAGE_LENGTH}
               disabled={asking}
+              autoFocus={autoFocus}
               placeholder={placeholder}
               className="w-full resize-y rounded-sm border border-paper-line/70 bg-white/50 px-2 py-1.5 font-mono text-sm text-ink-800 placeholder:text-ink-400 focus:border-pen/40 focus:outline-none focus:ring-1 focus:ring-pen/30 disabled:opacity-60"
             />
